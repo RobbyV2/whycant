@@ -4,7 +4,7 @@ use crate::op::Op;
 use crate::report::{Certainty, Evidence, EvidenceSource, LayerId};
 use std::fs::{self, Metadata};
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct ExistenceLayer;
 
@@ -18,12 +18,76 @@ impl Layer for ExistenceLayer {
     fn id(&self) -> LayerId {
         LayerId::Existence
     }
-    fn check(&self, _id: &Identity, path: &Path, _op: Op) -> LayerResult {
-        match fs::symlink_metadata(path) {
-            Ok(meta) if meta.file_type().is_symlink() => resolve_symlink(path, &meta),
-            Ok(meta) => LayerResult::pass(vec![lstat_ev(path, &meta)]),
-            Err(e) => classify(path, &e),
+    fn check(&self, _id: &Identity, path: &Path, op: Op) -> LayerResult {
+        match op {
+            Op::Create => check_create(path),
+            _ => match fs::symlink_metadata(path) {
+                Ok(meta) if meta.file_type().is_symlink() => resolve_symlink(path, &meta),
+                Ok(meta) => LayerResult::pass(vec![lstat_ev(path, &meta)]),
+                Err(e) => classify(path, &e),
+            },
         }
+    }
+}
+
+fn parent_of(p: &Path) -> PathBuf {
+    match p.parent() {
+        Some(par) if !par.as_os_str().is_empty() => par.to_path_buf(),
+        _ => PathBuf::from("."),
+    }
+}
+
+fn check_create(path: &Path) -> LayerResult {
+    let parent = parent_of(path);
+    let meta = match fs::metadata(&parent) {
+        Ok(m) => m,
+        Err(e) => return classify_parent(&parent, &e),
+    };
+    if !meta.is_dir() {
+        let raw = ev(
+            format!("stat {}: not a directory", parent.display()),
+            &parent,
+        );
+        return err(
+            format!("create parent {} is not a directory", parent.display()),
+            vec![raw],
+        );
+    }
+    let parent_ev = lstat_ev(&parent, &meta);
+    match fs::symlink_metadata(path) {
+        Ok(tmeta) => LayerResult {
+            status: LayerStatus::Pass,
+            certainty: Certainty::Proven,
+            evidence: vec![parent_ev, lstat_ev(path, &tmeta)],
+            fixes: Vec::new(),
+            detail: format!(
+                "{} already exists; create would fail EEXIST",
+                path.display()
+            ),
+        },
+        Err(_) => LayerResult::pass(vec![parent_ev]),
+    }
+}
+
+fn classify_parent(parent: &Path, e: &std::io::Error) -> LayerResult {
+    let raw = ev(format!("stat {}: {}", parent.display(), e), parent);
+    match e.raw_os_error() {
+        Some(libc::EACCES) => LayerResult::skip(),
+        Some(libc::ENOENT) => err(
+            format!("parent directory does not exist: {}", parent.display()),
+            vec![raw],
+        ),
+        Some(libc::ENOTDIR) => err(
+            format!(
+                "a path component of {} is not a directory",
+                parent.display()
+            ),
+            vec![raw],
+        ),
+        _ => err(
+            format!("cannot stat parent {}: {e}", parent.display()),
+            vec![raw],
+        ),
     }
 }
 
@@ -203,6 +267,51 @@ mod tests {
         symlink(&target, &link).unwrap();
         let r = run(&link);
         assert!(r.status == LayerStatus::Pass);
+    }
+
+    #[test]
+    fn create_missing_target_passes_on_dir_parent() {
+        let t = Tmp::new();
+        let r = ExistenceLayer.check(&ident(), &t.at("newfile"), Op::Create);
+        assert!(r.status == LayerStatus::Pass);
+        assert!(r.detail.is_empty());
+    }
+
+    #[test]
+    fn create_existing_target_is_informational() {
+        let t = Tmp::new();
+        let f = t.at("here");
+        fs::write(&f, b"x").unwrap();
+        let r = ExistenceLayer.check(&ident(), &f, Op::Create);
+        assert!(r.status == LayerStatus::Pass);
+        assert!(r.detail.contains("EEXIST"));
+    }
+
+    #[test]
+    fn create_missing_parent_is_error() {
+        let t = Tmp::new();
+        let deep = t.at("absent").join("child");
+        let r = ExistenceLayer.check(&ident(), &deep, Op::Create);
+        assert!(r.status == LayerStatus::Error);
+        assert!(r.detail.contains("parent"));
+    }
+
+    #[test]
+    fn create_parent_not_dir_is_error() {
+        let t = Tmp::new();
+        let file = t.at("afile");
+        fs::write(&file, b"x").unwrap();
+        let under = file.join("child");
+        let r = ExistenceLayer.check(&ident(), &under, Op::Create);
+        assert!(r.status == LayerStatus::Error);
+    }
+
+    #[test]
+    fn delete_missing_target_still_errors() {
+        let t = Tmp::new();
+        let r = ExistenceLayer.check(&ident(), &t.at("gone"), Op::Delete);
+        assert!(r.status == LayerStatus::Error);
+        assert!(r.detail.contains("does not exist"));
     }
 
     #[test]
