@@ -256,10 +256,10 @@ mod linux {
 
     fn presence_notes(se: &Option<SeState>, smack: bool, tomoyo: bool) -> Vec<String> {
         let mut n = Vec::new();
-        if let Some(s) = se {
-            if !s.enforcing {
-                n.push("SELinux permissive; logs, no deny".into());
-            }
+        if let Some(s) = se
+            && !s.enforcing
+        {
+            n.push("SELinux permissive; logs, no deny".into());
         }
         if smack {
             n.push("SMACK present; not evaluated per-file".into());
@@ -371,15 +371,15 @@ mod linux {
                 }
             }
         }
-        if let Some(a) = &aa {
-            if a.mode != AaMode::Unconfined {
-                evidence.push(ev(
-                    EvidenceSource::ApparmorStatus,
-                    format!("{} ({})", a.name, aa_word(a.mode)),
-                    None,
-                ));
-                tokens.push(a.name.clone());
-            }
+        if let Some(a) = &aa
+            && a.mode != AaMode::Unconfined
+        {
+            evidence.push(ev(
+                EvidenceSource::ApparmorStatus,
+                format!("{} ({})", a.name, aa_word(a.mode)),
+                None,
+            ));
+            tokens.push(a.name.clone());
         }
 
         let denial = audit_sources()

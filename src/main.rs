@@ -10,7 +10,7 @@ mod render;
 mod report;
 mod term;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use cli::{Action, Cli, Format};
 use op::Op;

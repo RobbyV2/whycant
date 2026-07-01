@@ -2,7 +2,7 @@ use crate::engine::{Layer, LayerResult, LayerStatus};
 use crate::identity::Identity;
 use crate::op::Op;
 use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
-use rustix::fs::{statvfs, StatVfsMountFlags};
+use rustix::fs::{StatVfsMountFlags, statvfs};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
@@ -233,12 +233,13 @@ fn unescape(s: &str) -> String {
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
     while i < b.len() {
-        if b[i] == b'\\' && i + 3 < b.len() {
-            if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 4], 8) {
-                out.push(v);
-                i += 4;
-                continue;
-            }
+        if b[i] == b'\\'
+            && i + 3 < b.len()
+            && let Ok(v) = u8::from_str_radix(&s[i + 1..i + 4], 8)
+        {
+            out.push(v);
+            i += 4;
+            continue;
         }
         out.push(b[i]);
         i += 1;

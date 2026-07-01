@@ -1,5 +1,5 @@
 use crate::report;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::ffi::OsStr;
 use uzers::{
     get_current_gid, get_current_uid, get_effective_uid, get_group_by_gid, get_user_by_name,
@@ -143,9 +143,9 @@ mod tests {
     #[test]
     fn current_user_has_primary_group() {
         let _g = ENV_LOCK.lock().unwrap();
-        std::env::remove_var("SUDO_UID");
-        std::env::remove_var("SUDO_GID");
-        std::env::remove_var("SUDO_USER");
+        unsafe { std::env::remove_var("SUDO_UID") };
+        unsafe { std::env::remove_var("SUDO_GID") };
+        unsafe { std::env::remove_var("SUDO_USER") };
         let id = resolve_target(None).unwrap();
         assert!(!id.groups.is_empty());
         assert!(id.groups.contains(&id.primary_gid));
@@ -180,13 +180,13 @@ mod tests {
     #[test]
     fn sudo_env_overrides_current_uid() {
         let _g = ENV_LOCK.lock().unwrap();
-        std::env::set_var("SUDO_UID", "0");
-        std::env::set_var("SUDO_GID", "0");
-        std::env::set_var("SUDO_USER", "root");
+        unsafe { std::env::set_var("SUDO_UID", "0") };
+        unsafe { std::env::set_var("SUDO_GID", "0") };
+        unsafe { std::env::set_var("SUDO_USER", "root") };
         let id = resolve_target(None);
-        std::env::remove_var("SUDO_UID");
-        std::env::remove_var("SUDO_GID");
-        std::env::remove_var("SUDO_USER");
+        unsafe { std::env::remove_var("SUDO_UID") };
+        unsafe { std::env::remove_var("SUDO_GID") };
+        unsafe { std::env::remove_var("SUDO_USER") };
         let id = id.unwrap();
         assert_eq!(id.uid, 0);
         assert_eq!(id.primary_gid, 0);

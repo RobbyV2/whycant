@@ -1,7 +1,7 @@
 use crate::config::{Settings, Tristate};
 use crate::op::OpArg;
 use clap::{CommandFactory, Parser, ValueEnum};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
 use std::io::Write;
@@ -335,9 +335,11 @@ mod tests {
 
     #[test]
     fn apply_needs_yes_non_interactive() {
-        assert!(parse(&["whycant", "--apply", "read", "/p"])
-            .action(false)
-            .is_err());
+        assert!(
+            parse(&["whycant", "--apply", "read", "/p"])
+                .action(false)
+                .is_err()
+        );
         assert!(matches!(
             parse(&["whycant", "--apply", "read", "/p"]).action(true),
             Ok(Action::Prompt)

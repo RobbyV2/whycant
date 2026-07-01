@@ -480,9 +480,9 @@ mod tests {
     #[test]
     fn env_reader_picks_up_no_color() {
         let _g = ENV_LOCK.lock().unwrap();
-        std::env::set_var("NO_COLOR", "1");
+        unsafe { std::env::set_var("NO_COLOR", "1") };
         assert!(ColorEnv::detect().no_color);
-        std::env::remove_var("NO_COLOR");
+        unsafe { std::env::remove_var("NO_COLOR") };
         assert!(!ColorEnv::detect().no_color);
     }
 }

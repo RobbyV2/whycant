@@ -1,6 +1,6 @@
 use crate::engine::{Layer, LayerResult, LayerStatus};
 use crate::identity::Identity;
-use crate::op::{gating_node, GateTarget, Op};
+use crate::op::{GateTarget, Op, gating_node};
 use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use std::fs::{self, Metadata};
 use std::os::unix::fs::MetadataExt;
@@ -333,10 +333,11 @@ mod tests {
         let r = check_node(&other, &f, Op::Read);
         assert!(matches!(r.status, LayerStatus::Block));
         assert!(r.certainty == Certainty::Proven);
-        assert!(r
-            .fixes
-            .iter()
-            .any(|f| f.argv().first().map(String::as_str) == Some("setfacl")));
+        assert!(
+            r.fixes
+                .iter()
+                .any(|f| f.argv().first().map(String::as_str) == Some("setfacl"))
+        );
     }
 
     #[test]

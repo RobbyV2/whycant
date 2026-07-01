@@ -1,4 +1,4 @@
-use crate::render::human::{render_report, Layout};
+use crate::render::human::{Layout, render_report};
 use crate::report::Report;
 use crate::term::{ColorDepth, GlyphSet, TermCtx};
 use anyhow::Result;

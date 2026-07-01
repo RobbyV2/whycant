@@ -33,9 +33,9 @@ impl Layer for AclLayer {
 mod posix {
     use crate::engine::LayerResult;
     use crate::identity::Identity;
-    use crate::op::{gating_node, GateTarget, Op};
+    use crate::op::{GateTarget, Op, gating_node};
     use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, Risk};
-    use exacl::{getfacl, AclEntry, AclEntryKind, Perm};
+    use exacl::{AclEntry, AclEntryKind, Perm, getfacl};
     use std::fs;
     use std::os::unix::fs::MetadataExt;
     use std::path::{Path, PathBuf};
@@ -436,10 +436,11 @@ mod posix {
             assert!(matches!(r.status, crate::engine::LayerStatus::Block));
             assert!(r.certainty == Certainty::Proven);
             assert!(r.evidence.iter().any(|e| e.raw.contains("user:99991")));
-            assert!(r
-                .fixes
-                .iter()
-                .any(|fx| fx.argv().first().map(String::as_str) == Some("setfacl")));
+            assert!(
+                r.fixes
+                    .iter()
+                    .any(|fx| fx.argv().first().map(String::as_str) == Some("setfacl"))
+            );
         }
     }
 }

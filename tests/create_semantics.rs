@@ -4,7 +4,7 @@ use std::path::Path;
 use whycant::engine::{self, default_chain};
 use whycant::identity::Identity;
 use whycant::op::Op;
-use whycant::report::{exit_code, LayerId, Verdict};
+use whycant::report::{LayerId, Verdict, exit_code};
 
 fn owner_of(p: &Path) -> Identity {
     let m = fs::metadata(p).unwrap();

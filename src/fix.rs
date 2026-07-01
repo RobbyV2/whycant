@@ -5,7 +5,7 @@ use crate::identity::Identity;
 use crate::op::Op;
 use crate::report::{LayerId, Report, Verdict};
 use crate::term::TermCtx;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use inquire::{Confirm, Select};
 use std::fmt;
 use std::io::Write;

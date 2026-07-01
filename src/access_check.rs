@@ -1,6 +1,6 @@
-use crate::op::{gating_node, GateTarget, Op};
+use crate::op::{GateTarget, Op, gating_node};
 use crate::report::CrossCheck;
-use rustix::fs::{accessat, Access, AtFlags, CWD};
+use rustix::fs::{Access, AtFlags, CWD, accessat};
 use rustix::io::Errno;
 use std::path::Path;
 

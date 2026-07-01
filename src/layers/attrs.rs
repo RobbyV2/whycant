@@ -102,7 +102,7 @@ fn op_word(op: Op) -> &'static str {
 
 #[cfg(target_os = "linux")]
 fn check_node(path: &Path, op: Op) -> Option<LayerResult> {
-    use rustix::fs::{ioctl_getflags, open, IFlags, Mode, OFlags};
+    use rustix::fs::{IFlags, Mode, OFlags, ioctl_getflags, open};
     let fd = open(
         path,
         OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC,
@@ -324,7 +324,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn immutable_roundtrip_root() {
-        use rustix::fs::{ioctl_getflags, ioctl_setflags, open, IFlags, Mode, OFlags};
+        use rustix::fs::{IFlags, Mode, OFlags, ioctl_getflags, ioctl_setflags, open};
         if !rustix::process::geteuid().is_root() {
             eprintln!("attrs: skipping immutable round-trip; needs root");
             return;
@@ -348,9 +348,10 @@ mod tests {
 
         assert!(matches!(r.status, LayerStatus::Block));
         assert!(r.certainty == Certainty::Proven);
-        assert!(r
-            .fixes
-            .iter()
-            .any(|x| x.argv().first().map(String::as_str) == Some("chattr")));
+        assert!(
+            r.fixes
+                .iter()
+                .any(|x| x.argv().first().map(String::as_str) == Some("chattr"))
+        );
     }
 }

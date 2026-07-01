@@ -98,15 +98,15 @@ mod tests {
         let dir = temp_dir("layer");
         let mut f = std::fs::File::create(dir.join("whycant").join("config.toml")).unwrap();
         writeln!(f, "color = \"always\"\nprint_fixes = false\n").unwrap();
-        std::env::set_var("XDG_CONFIG_HOME", &dir);
-        std::env::set_var("WHYCANT_COLOR", "never");
-        std::env::set_var("WHYCANT_PRINT_FIXES", "true");
-        std::env::set_var("WHYCANT_INTERACTIVE", "1");
+        unsafe { std::env::set_var("XDG_CONFIG_HOME", &dir) };
+        unsafe { std::env::set_var("WHYCANT_COLOR", "never") };
+        unsafe { std::env::set_var("WHYCANT_PRINT_FIXES", "true") };
+        unsafe { std::env::set_var("WHYCANT_INTERACTIVE", "1") };
         let s = load().unwrap();
-        std::env::remove_var("WHYCANT_COLOR");
-        std::env::remove_var("WHYCANT_PRINT_FIXES");
-        std::env::remove_var("WHYCANT_INTERACTIVE");
-        std::env::remove_var("XDG_CONFIG_HOME");
+        unsafe { std::env::remove_var("WHYCANT_COLOR") };
+        unsafe { std::env::remove_var("WHYCANT_PRINT_FIXES") };
+        unsafe { std::env::remove_var("WHYCANT_INTERACTIVE") };
+        unsafe { std::env::remove_var("XDG_CONFIG_HOME") };
         std::fs::remove_dir_all(&dir).ok();
         assert!(matches!(s.color, Some(ColorMode::Never)));
         assert_eq!(s.print_fixes, Some(true));
@@ -117,9 +117,9 @@ mod tests {
     fn missing_file_is_defaults() {
         let _g = ENV_LOCK.lock().unwrap();
         let dir = temp_dir("empty");
-        std::env::set_var("XDG_CONFIG_HOME", &dir);
+        unsafe { std::env::set_var("XDG_CONFIG_HOME", &dir) };
         let s = load().unwrap();
-        std::env::remove_var("XDG_CONFIG_HOME");
+        unsafe { std::env::remove_var("XDG_CONFIG_HOME") };
         std::fs::remove_dir_all(&dir).ok();
         assert!(s.color.is_none() && s.format.is_none() && s.interactive.is_none());
     }

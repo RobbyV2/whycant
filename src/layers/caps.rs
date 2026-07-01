@@ -41,32 +41,32 @@ fn linux_check(id: &Identity, path: &Path, op: Op) -> LayerResult {
     let mut evidence = Vec::new();
     let mut notes = Vec::new();
 
-    if id.is_self {
-        if let Ok(effective) = caps::read(None, CapSet::Effective) {
-            let mut held: Vec<Capability> = effective
-                .into_iter()
-                .filter(|c| dac_bypass_note(*c).is_some())
-                .collect();
-            held.sort_by_key(Capability::index);
-            for cap in held {
-                let desc = dac_bypass_note(cap).unwrap_or("");
-                evidence.push(Evidence {
-                    source: EvidenceSource::Capability,
-                    raw: format!("{cap} (effective): {desc}"),
-                    path: None,
-                });
-                notes.push(format!("holds {}", cap.to_string().to_lowercase()));
-            }
+    if id.is_self
+        && let Ok(effective) = caps::read(None, CapSet::Effective)
+    {
+        let mut held: Vec<Capability> = effective
+            .into_iter()
+            .filter(|c| dac_bypass_note(*c).is_some())
+            .collect();
+        held.sort_by_key(Capability::index);
+        for cap in held {
+            let desc = dac_bypass_note(cap).unwrap_or("");
+            evidence.push(Evidence {
+                source: EvidenceSource::Capability,
+                raw: format!("{cap} (effective): {desc}"),
+                path: None,
+            });
+            notes.push(format!("holds {}", cap.to_string().to_lowercase()));
         }
     }
 
-    if matches!(op, Op::Exec) {
-        if let Some(fc) = read_file_caps(path) {
-            evidence.push(getcap_line(&fc, path));
-            let names = cap_names(fc.permitted);
-            if !names.is_empty() {
-                notes.push(format!("file caps {}", names.join(",")));
-            }
+    if matches!(op, Op::Exec)
+        && let Some(fc) = read_file_caps(path)
+    {
+        evidence.push(getcap_line(&fc, path));
+        let names = cap_names(fc.permitted);
+        if !names.is_empty() {
+            notes.push(format!("file caps {}", names.join(",")));
         }
     }
 

@@ -188,14 +188,16 @@ mod tests {
             assert_eq!(blocker.path.as_deref(), Some(b.as_path()));
             assert!(r.detail.contains(&b.display().to_string()));
 
-            assert!(r
-                .evidence
-                .iter()
-                .any(|e| e.path.as_deref() == Some(a.as_path())));
-            assert!(r
-                .evidence
-                .iter()
-                .all(|e| e.path.as_deref() != Some(c.as_path())));
+            assert!(
+                r.evidence
+                    .iter()
+                    .any(|e| e.path.as_deref() == Some(a.as_path()))
+            );
+            assert!(
+                r.evidence
+                    .iter()
+                    .all(|e| e.path.as_deref() != Some(c.as_path()))
+            );
 
             let fix = &r.fixes[0];
             let FixAction::Run { argv } = &fix.action else {
