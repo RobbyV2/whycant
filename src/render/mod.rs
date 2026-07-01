@@ -1,3 +1,6 @@
+//! Renderer selection. Dispatches one [`Report`] to the human, JSON, TOML, or
+//! plain writer; every format draws from the same struct so they cannot drift.
+
 pub mod human;
 pub mod machine;
 

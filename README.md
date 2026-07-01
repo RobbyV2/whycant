@@ -26,11 +26,25 @@ provable only from the audit log is suspected until confirmed with `sudo`.
 ## Install
 
 ```sh
+cargo install whycant
+```
+
+From source:
+
+```sh
 # Linux needs libacl for the ACL layer
 sudo apt-get install -y libacl1-dev
 cargo build --release
 # ACL layer is optional; build without exacl/libacl:
 cargo build --release --no-default-features
+```
+
+Man page:
+
+```sh
+whycant --man > whycant.1
+sudo cp whycant.1 /usr/local/share/man/man1/whycant.1
+man whycant
 ```
 
 ## Usage

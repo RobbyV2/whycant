@@ -1,3 +1,7 @@
+//! Command-line surface. clap derive structs for the op, path, wrap-mode
+//! command, and flags, plus shell completion and man-page generation off the
+//! same command definition so they never drift.
+
 use crate::config::{Settings, Tristate};
 use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::{Shell, generate};

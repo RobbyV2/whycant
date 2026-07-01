@@ -1,3 +1,7 @@
+//! Terminal capability and policy. Owns color and hyperlink resolution, glyph
+//! set, width, and signal-safe teardown; no other module reads terminal env
+//! vars, calls `isatty`, or emits an escape directly.
+
 use crate::cli::ColorMode;
 use std::borrow::Cow;
 use std::io::{IsTerminal, Write};

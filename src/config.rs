@@ -1,3 +1,7 @@
+//! Configuration model and precedence. Merges built-in defaults, the config
+//! file, `WHYCANT_*` environment variables, and CLI flags, lowest to highest.
+//! A missing file means all defaults; only a malformed file is a hard error.
+
 use crate::cli::{ColorMode, Format};
 use anyhow::Result;
 use serde::Deserialize;

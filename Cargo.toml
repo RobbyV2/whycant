@@ -4,6 +4,24 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 resolver = "3"
+description = "CLI tool to figure out why you can't do something."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/RobbyV2/whycant"
+homepage = "https://github.com/RobbyV2/whycant"
+documentation = "https://docs.rs/whycant"
+readme = "README.md"
+authors = ["RobbyV2"]
+keywords = ["permissions", "filesystem", "acl", "diagnostics", "cli"]
+categories = ["command-line-utilities", "filesystem", "development-tools::debugging"]
+include = [
+    "src/**/*",
+    "build.rs",
+    "Cargo.toml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+]
 
 [[bin]]
 name = "whycant"

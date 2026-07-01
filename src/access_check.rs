@@ -1,3 +1,7 @@
+//! Kernel cross-check via `faccessat(AT_EACCESS)`. Runs only when the target
+//! identity equals the current euid, corroborating the symbolic R/W/X verdict
+//! and flagging any disagreement between model and kernel.
+
 use crate::op::{GateTarget, Op, gating_node};
 use crate::report::CrossCheck;
 use rustix::fs::{Access, AtFlags, CWD, accessat};

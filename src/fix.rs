@@ -1,3 +1,7 @@
+//! Least-privilege fix synthesis, display, and application. Builds a [`Fix`]
+//! from validated slots only (never probed data), presents the interactive
+//! picker, and runs an approved fix as an argv array without a shell.
+
 pub use crate::report::{Fix, FixAction};
 
 use crate::engine::{self, Layer};

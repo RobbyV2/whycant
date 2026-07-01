@@ -1,7 +1,13 @@
+//! Serializable report model. One [`Report`] drives every output format, so
+//! JSON, TOML, plain, and human renderings cannot drift. Also holds the
+//! verdict, certainty, layer, evidence, and fix types, and the exit-code map.
+
 use crate::op::Op;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Full diagnosis of one operation: verdict, per-layer results, evidence chain,
+/// and ordered fixes. Serializes identically across formats.
 #[derive(Serialize, Deserialize)]
 pub struct Report {
     pub schema_version: u32,
@@ -41,12 +47,17 @@ pub enum RunningAs {
     SudoElevated,
 }
 
+/// Final outcome of the chain for the requested op.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Verdict {
+    /// No layer blocks the op.
     Allowed,
+    /// A layer denies the op.
     Blocked,
+    /// A denial is suspected but cannot be confirmed unprivileged.
     Indeterminate,
+    /// The target itself is unresolvable (ENOENT, not a file, broken symlink).
     TargetError,
 }
 
@@ -69,19 +80,31 @@ pub enum Certainty {
     Indeterminate,
 }
 
+/// Stable identifier for each of the eleven layers, in chain order.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum LayerId {
+    /// Symlink resolution; ENOENT versus EACCES-masked-ENOENT; broken links.
     Existence,
+    /// Per-ancestor traverse (`x`) for the identity.
     Traverse,
+    /// Owner/group/other mode bits, sticky, setuid/setgid.
     Dac,
+    /// POSIX or NFSv4 access-control list evaluation.
     Acl,
+    /// Immutable and append-only file attributes.
     Attrs,
+    /// Read-only and noexec mount flags.
     Mount,
+    /// Process and file capabilities.
     Capabilities,
+    /// SELinux, AppArmor, SMACK/TOMOYO mandatory access control.
     Mac,
+    /// macOS SIP, quarantine, read-only system volume, TCC.
     MacosSip,
+    /// NFS/CIFS root_squash, ro-export, uid mismatch; always suspected.
     NetworkFs,
+    /// Container and user-namespace context (uid_map, dropped caps, seccomp).
     Container,
 }
 
@@ -122,16 +145,25 @@ pub struct LayerResult {
     pub evidence: Vec<Evidence>,
 }
 
+/// Serialized per-layer status. The internal [`crate::engine::LayerStatus`]
+/// `Error` maps to `Unknown` here.
 #[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum LayerStatus {
+    /// Layer applies and permits the op.
     Pass,
+    /// Layer denies the op.
     Block,
+    /// Denial inferred without conclusive evidence.
     Suspect,
+    /// Layer inapplicable on this platform or path.
     Skip,
+    /// Layer could not decide unprivileged; drives `Indeterminate`.
     Unknown,
 }
 
+/// One raw line of proof behind a verdict, quoted verbatim so the user can
+/// eyeball-verify it (an `ls -ld` line, a `getfacl` entry, mount options).
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Evidence {
     pub source: EvidenceSource,
@@ -165,6 +197,8 @@ pub enum FixAction {
     Advice { text: String },
 }
 
+/// A least-privilege remedy for one blocking layer. Either a runnable argv or
+/// non-executable advice, tagged with privilege, risk, and rationale.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Fix {
     pub action: FixAction,
@@ -209,6 +243,8 @@ pub struct CrossCheck {
     pub message: Option<String>,
 }
 
+/// Map a report to its process exit code: 0 allowed, 1 blocked and proven,
+/// 2 blocked but indeterminate, 3 target error.
 pub fn exit_code(report: &Report) -> i32 {
     match (report.verdict, report.certainty) {
         (Verdict::Allowed, _) => 0,

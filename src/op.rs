@@ -1,3 +1,7 @@
+//! Operation model. The [`Op`] a layer evaluates, the [`OpArg`] CLI keyword,
+//! the parent-directory redirection for delete/create, and op inference from a
+//! bare path or a wrapped command.
+
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
@@ -5,6 +9,8 @@ use std::fs::Metadata;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
+/// The filesystem operation being explained. `Delete` and `Create` gate on the
+/// parent directory, not the target's own mode.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Op {
@@ -16,6 +22,7 @@ pub enum Op {
     Create,
 }
 
+/// CLI keyword form of an op; `Cd` is an alias of `Traverse`.
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum OpArg {
     Read,

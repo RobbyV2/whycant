@@ -1,3 +1,7 @@
+//! The eleven access-control layers. Each is a struct implementing
+//! [`crate::engine::Layer`]; platform-specific mechanisms live inside each
+//! layer's check and fall through to a Skip where inapplicable.
+
 mod acl;
 mod attrs;
 mod caps;

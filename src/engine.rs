@@ -1,3 +1,7 @@
+//! Ordered layer chain runner. Threads one `(identity, path, op)` through every
+//! [`Layer`] in fixed order, short-circuits reporting at the first proven block,
+//! folds per-layer certainty into a final verdict, and assembles the [`Report`].
+
 use crate::identity::Identity;
 use crate::layers::*;
 use crate::op::Op;
@@ -7,12 +11,18 @@ use crate::report::{
 };
 use std::path::Path;
 
+/// Per-layer outcome the runner acts on.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum LayerStatus {
+    /// Layer applies and permits the op; the walk continues.
     Pass,
+    /// Layer denies the op; the reported verdict when earliest and proven.
     Block,
+    /// Denial inferred without conclusive evidence; carries `Suspected`.
     Suspect,
+    /// Layer inapplicable on this platform or path; ignored for the verdict.
     Skip,
+    /// Layer-local read failure; recorded, and on layer 1 aborts to a target error.
     Error,
 }
 
@@ -68,13 +78,20 @@ impl LayerResult {
     }
 }
 
+/// One access-control layer. Reads real filesystem state and evaluates it
+/// against a target identity for one op.
 pub trait Layer: Sync {
+    /// Short human name used in output and warnings.
     fn name(&self) -> &str;
+    /// Fixed position in the chain, 1 through 11.
     fn order(&self) -> u8;
+    /// Serializable identifier of this layer.
     fn id(&self) -> LayerId;
+    /// Evaluate `op` on `path` for `target`, returning the layer's result.
     fn check(&self, target: &Identity, path: &Path, op: Op) -> LayerResult;
 }
 
+/// Build the eleven-layer chain in fixed order.
 pub fn default_chain() -> Vec<Box<dyn Layer>> {
     vec![
         Box::new(ExistenceLayer),

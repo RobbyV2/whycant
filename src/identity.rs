@@ -1,3 +1,8 @@
+//! Target identity resolution. Defaults to the invoking real user
+//! (SUDO_UID/GID/USER before getuid) so sudo does not silently pass DAC checks,
+//! and resolves `--user` to a uid, primary gid, and full supplementary group
+//! set via getgrouplist. Every layer evaluates against this, not the process.
+
 use crate::report;
 use anyhow::{Result, anyhow};
 use std::ffi::OsStr;
