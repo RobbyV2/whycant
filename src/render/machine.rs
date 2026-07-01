@@ -26,8 +26,8 @@ mod tests {
     use super::*;
     use crate::op::Op;
     use crate::report::{
-        Certainty, CrossCheck, Evidence, EvidenceSource, Fix, IdentityReport, LayerId, LayerResult,
-        LayerStatus, Mark, NodeKind, PathComponent, Risk, RunningAs, Verdict,
+        Certainty, CrossCheck, Evidence, EvidenceSource, Fix, FixAction, IdentityReport, LayerId,
+        LayerResult, LayerStatus, Mark, NodeKind, PathComponent, Risk, RunningAs, Verdict,
     };
 
     fn plain_term() -> TermCtx {
@@ -110,12 +110,14 @@ mod tests {
                 }],
             }],
             fixes: vec![Fix {
-                argv: vec![
-                    "setfacl".into(),
-                    "-m".into(),
-                    "u:alice:r".into(),
-                    "/srv/secret/report.txt".into(),
-                ],
+                action: FixAction::Run {
+                    argv: vec![
+                        "setfacl".into(),
+                        "-m".into(),
+                        "u:alice:r".into(),
+                        "/srv/secret/report.txt".into(),
+                    ],
+                },
                 needs_root: true,
                 description: "grant alice r via named-user ACL".into(),
                 risk: Risk::Low,

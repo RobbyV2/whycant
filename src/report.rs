@@ -156,8 +156,15 @@ pub enum EvidenceSource {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FixAction {
+    Run { argv: Vec<String> },
+    Advice { text: String },
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Fix {
-    pub argv: Vec<String>,
+    pub action: FixAction,
     pub needs_root: bool,
     pub description: String,
     pub risk: Risk,
@@ -170,6 +177,23 @@ pub enum Risk {
     Low,
     Medium,
     High,
+}
+
+impl Risk {
+    pub fn word(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+        }
+    }
+    pub fn rank(self) -> u8 {
+        match self {
+            Self::Low => 0,
+            Self::Medium => 1,
+            Self::High => 2,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

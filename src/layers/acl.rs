@@ -34,7 +34,7 @@ mod posix {
     use crate::engine::LayerResult;
     use crate::identity::Identity;
     use crate::op::{gating_node, GateTarget, Op};
-    use crate::report::{Certainty, Evidence, EvidenceSource, Fix, Risk};
+    use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, Risk};
     use exacl::{getfacl, AclEntry, AclEntryKind, Perm};
     use std::fs;
     use std::os::unix::fs::MetadataExt;
@@ -169,12 +169,14 @@ mod posix {
         let perm = op_letters(op);
         let pstr = target.to_string_lossy().into_owned();
         Fix {
-            argv: vec![
-                "setfacl".into(),
-                "-m".into(),
-                format!("u:{who}:{perm}"),
-                pstr.clone(),
-            ],
+            action: FixAction::Run {
+                argv: vec![
+                    "setfacl".into(),
+                    "-m".into(),
+                    format!("u:{who}:{perm}"),
+                    pstr.clone(),
+                ],
+            },
             needs_root: id.uid != owner_uid,
             description: format!("grant {who} {perm} on {pstr} via a named-user ACL entry"),
             risk: Risk::Low,
@@ -437,7 +439,7 @@ mod posix {
             assert!(r
                 .fixes
                 .iter()
-                .any(|fx| fx.argv.first().map(String::as_str) == Some("setfacl")));
+                .any(|fx| fx.argv().first().map(String::as_str) == Some("setfacl")));
         }
     }
 }

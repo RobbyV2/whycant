@@ -67,12 +67,15 @@ raw = "drwxr-x--- 4 root staff 4096 /srv/data"
 path = "/srv/data"
 
 [[fixes]]
+needs_root = true
+description = "grant others traverse on the blocking directory"
+risk = "low"
+rationale = "others need +x to descend into /srv/data toward report.txt"
+
+[fixes.action]
+kind = "run"
 argv = [
     "chmod",
     "o+x",
     "/srv/data",
 ]
-needs_root = true
-description = "grant others traverse on the blocking directory"
-risk = "low"
-rationale = "others need +x to descend into /srv/data toward report.txt"

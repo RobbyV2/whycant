@@ -1,7 +1,7 @@
 use crate::engine::{Layer, LayerResult};
 use crate::identity::Identity;
 use crate::op::Op;
-use crate::report::{Certainty, Evidence, EvidenceSource, Fix, LayerId, Risk};
+use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use std::path::{Path, PathBuf};
 
 pub struct AttrLayer;
@@ -164,7 +164,9 @@ fn fix(path: &Path, reason: Reason) -> Fix {
     };
     let p = path.to_string_lossy().into_owned();
     Fix {
-        argv: vec!["chattr".into(), flag.into(), p.clone()],
+        action: FixAction::Run {
+            argv: vec!["chattr".into(), flag.into(), p.clone()],
+        },
         needs_root: true,
         description: format!("clear the {word} attribute on {p}"),
         risk: Risk::Medium,
@@ -245,7 +247,9 @@ fn fix(path: &Path, reason: Reason) -> Fix {
     };
     let p = path.to_string_lossy().into_owned();
     Fix {
-        argv: vec!["chflags".into(), flag.into(), p.clone()],
+        action: FixAction::Run {
+            argv: vec!["chflags".into(), flag.into(), p.clone()],
+        },
         needs_root: true,
         description: format!("clear the {word} attribute on {p}"),
         risk: Risk::Medium,
@@ -344,6 +348,6 @@ mod tests {
         assert!(r
             .fixes
             .iter()
-            .any(|x| x.argv.first().map(String::as_str) == Some("chattr")));
+            .any(|x| x.argv().first().map(String::as_str) == Some("chattr")));
     }
 }

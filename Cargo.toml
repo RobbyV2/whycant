@@ -17,6 +17,7 @@ clap_complete = "4"
 clap_mangen = "0.2"
 config = "0.14"
 exacl = "0.12"
+inquire = "0.7"
 libc = "0.2"
 rustix = { version = "0.38", features = ["fs", "process", "thread"] }
 serde = { version = "1", features = ["derive"] }

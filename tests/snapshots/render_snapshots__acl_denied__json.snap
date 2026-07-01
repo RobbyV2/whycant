@@ -90,12 +90,15 @@ expression: json
   ],
   "fixes": [
     {
-      "argv": [
-        "setfacl",
-        "-m",
-        "m::rx",
-        "/srv/share/config.yaml"
-      ],
+      "action": {
+        "kind": "run",
+        "argv": [
+          "setfacl",
+          "-m",
+          "m::rx",
+          "/srv/share/config.yaml"
+        ]
+      },
       "needs_root": true,
       "description": "extend the ACL mask so the existing named-user entry takes effect",
       "risk": "low",

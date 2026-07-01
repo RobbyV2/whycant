@@ -10,5 +10,5 @@ chain secret pass x
 chain report.txt block r class other lacks r
 evidence dac ls_ld -rw------- 1 root root 1240 /srv/secret/report.txt
 crosscheck agree model and kernel concur
-fix low sudo setfacl -m u:alice:r /srv/secret/report.txt
+fix low run sudo setfacl -m u:alice:r /srv/secret/report.txt
 fix-note owner, group, other unchanged

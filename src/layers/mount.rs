@@ -1,7 +1,7 @@
 use crate::engine::{Layer, LayerResult, LayerStatus};
 use crate::identity::Identity;
 use crate::op::Op;
-use crate::report::{Certainty, Evidence, EvidenceSource, Fix, LayerId, Risk};
+use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use rustix::fs::{statvfs, StatVfsMountFlags};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
@@ -123,7 +123,7 @@ fn find_mount_point(path: &Path) -> PathBuf {
     cur.to_path_buf()
 }
 
-fn evaluate(info: &MountInfo, path: &Path, op: Op) -> LayerResult {
+fn evaluate(info: &MountInfo, _path: &Path, op: Op) -> LayerResult {
     let ev = info.evidence();
     match op {
         Op::Write | Op::Delete | Op::Create if info.ro => LayerResult::block(
@@ -143,7 +143,7 @@ fn evaluate(info: &MountInfo, path: &Path, op: Op) -> LayerResult {
                 info.mountpoint
             ),
             vec![ev],
-            vec![relocate_fix(path), remount_fix(&info.mountpoint, "exec")],
+            vec![relocate_advice(), remount_fix(&info.mountpoint, "exec")],
         ),
         _ => LayerResult::skip(),
     }
@@ -162,12 +162,14 @@ fn op_word(op: Op) -> &'static str {
 
 fn remount_fix(mnt: &str, flag: &str) -> Fix {
     Fix {
-        argv: vec![
-            "mount".into(),
-            "-o".into(),
-            format!("remount,{flag}"),
-            mnt.into(),
-        ],
+        action: FixAction::Run {
+            argv: vec![
+                "mount".into(),
+                "-o".into(),
+                format!("remount,{flag}"),
+                mnt.into(),
+            ],
+        },
         needs_root: true,
         description: format!("remount {mnt} with {flag}"),
         risk: Risk::High,
@@ -175,14 +177,13 @@ fn remount_fix(mnt: &str, flag: &str) -> Fix {
     }
 }
 
-fn relocate_fix(path: &Path) -> Fix {
-    let dest = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+fn relocate_advice() -> Fix {
     Fix {
-        argv: vec!["cp".into(), path.display().to_string(), dest.clone()],
+        action: FixAction::Advice {
+            text: "run from a filesystem without noexec".into(),
+        },
         needs_root: false,
-        description: format!(
-            "copy the program to {dest} and run it from an exec-mounted filesystem"
-        ),
+        description: "run from an exec-mounted filesystem".into(),
         risk: Risk::Low,
         rationale:
             "avoids weakening the mount"
@@ -318,8 +319,10 @@ mod tests {
         let blk = evaluate(&mi(false, true), Path::new("/mnt/x"), Op::Exec);
         assert!(matches!(blk.status, LayerStatus::Block));
         assert_eq!(blk.fixes.len(), 2);
+        assert!(matches!(blk.fixes[0].action, FixAction::Advice { .. }));
         assert!(matches!(blk.fixes[0].risk, Risk::Low));
         assert!(!blk.fixes[0].needs_root);
+        assert!(matches!(blk.fixes[1].action, FixAction::Run { .. }));
         assert!(matches!(blk.fixes[1].risk, Risk::High));
         for op in [Op::Read, Op::Write, Op::Create, Op::Delete, Op::Traverse] {
             let r = evaluate(&mi(false, true), Path::new("/mnt/x"), op);

@@ -95,7 +95,9 @@ fn lr(layer: LayerId, status: LayerStatus, summary: &str, evidence: Vec<Evidence
 
 fn fix(argv: &[&str], root: bool, desc: &str, risk: Risk, rationale: &str) -> Fix {
     Fix {
-        argv: argv.iter().map(|s| (*s).into()).collect(),
+        action: FixAction::Run {
+            argv: argv.iter().map(|s| (*s).into()).collect(),
+        },
         needs_root: root,
         description: desc.into(),
         risk,
@@ -465,7 +467,7 @@ fn fixture_blocked_traverse() {
         "plain culprit: {plain}"
     );
     assert!(
-        plain.contains("fix low sudo chmod 'o+x' /srv/data"),
+        plain.contains("fix low run sudo chmod 'o+x' /srv/data"),
         "plain fix: {plain}"
     );
 }
@@ -487,7 +489,7 @@ fn fixture_acl_denied() {
     assert!(dumb.contains("x BLOCKED"), "ascii culprit mark: {dumb}");
     let plain = render_plain(&r, &term(ColorDepth::None, GlyphSet::Ascii));
     assert!(
-        plain.contains("fix low sudo setfacl -m m::rx /srv/share/config.yaml"),
+        plain.contains("fix low run sudo setfacl -m m::rx /srv/share/config.yaml"),
         "plain fix: {plain}"
     );
     assert!(

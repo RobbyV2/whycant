@@ -1,6 +1,11 @@
 # Project scratch
 temp/
 
+# Recordings
+*.cast
+*.gif
+*.mp4
+
 # Secrets / local config
 .env.*
 !.env.example

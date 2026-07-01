@@ -1,5 +1,6 @@
 use crate::report::{
-    CrossCheck, Evidence, EvidenceSource, Fix, LayerId, Mark, PathComponent, Report, Risk, Verdict,
+    CrossCheck, Evidence, EvidenceSource, Fix, FixAction, LayerId, Mark, PathComponent, Report,
+    Risk, Verdict,
 };
 use crate::term::{Glyph, GlyphSet, Stream, TermCtx};
 use anstyle::Style;
@@ -341,14 +342,6 @@ fn crosscheck_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<Strin
     }
 }
 
-fn risk_word(r: Risk) -> &'static str {
-    match r {
-        Risk::Low => "low",
-        Risk::Medium => "medium",
-        Risk::High => "high",
-    }
-}
-
 fn risk_style(term: &TermCtx, r: Risk) -> Style {
     let (rr, g, b) = match r {
         Risk::Low => (0x2e, 0xcc, 0x71),
@@ -372,12 +365,16 @@ fn fix_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
                     let tag = paint(
                         term,
                         risk_style(term, f.risk),
-                        &format!("[risk: {}]", risk_word(f.risk)),
+                        &format!("[risk: {}]", f.risk.word()),
                     );
-                    [
-                        format!("  {arrow} {}   {tag}", f.display()),
-                        format!("      {}", f.rationale),
-                    ]
+                    let head = match &f.action {
+                        FixAction::Run { .. } => format!("  {arrow} {}   {tag}", f.display()),
+                        FixAction::Advice { text } => {
+                            let mark = paint(term, term.style_rgb(0x88, 0x88, 0x88), "advice:");
+                            format!("  {arrow} {mark} {text}   {tag}")
+                        }
+                    };
+                    [head, format!("      {}", f.rationale)]
                 })
                 .collect()
         }
@@ -385,10 +382,15 @@ fn fix_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
             .fixes
             .iter()
             .flat_map(|f: &Fix| {
-                [
-                    format!("fix {} {}", risk_word(f.risk), f.display()),
-                    format!("fix-note {}", f.rationale),
-                ]
+                let head = match &f.action {
+                    FixAction::Run { .. } => {
+                        format!("fix {} run {}", f.risk.word(), f.display())
+                    }
+                    FixAction::Advice { text } => {
+                        format!("fix {} advice {text}", f.risk.word())
+                    }
+                };
+                [head, format!("fix-note {}", f.rationale)]
             })
             .collect(),
     }
@@ -485,7 +487,9 @@ mod tests {
                 }],
             }],
             fixes: vec![Fix {
-                argv: vec!["chmod".into(), "o+x".into(), "/home/alice".into()],
+                action: FixAction::Run {
+                    argv: vec!["chmod".into(), "o+x".into(), "/home/alice".into()],
+                },
                 needs_root: true,
                 description: "grant traverse on the blocking directory".into(),
                 risk: Risk::Low,

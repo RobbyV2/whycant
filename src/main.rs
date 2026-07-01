@@ -12,8 +12,9 @@ mod term;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use cli::{Cli, Format};
+use cli::{Action, Cli, Format};
 use op::Op;
+use report::Verdict;
 use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use term::TermCtx;
@@ -71,7 +72,8 @@ fn real_main() -> Result<i32, AppError> {
 
     let tty = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
     let interactive = resolved.interactive.unwrap_or(tty);
-    cli.action(interactive)
+    let action = cli
+        .action(interactive)
         .map_err(|e| AppError::Usage(e.to_string()))?;
 
     let chain = engine::default_chain();
@@ -90,6 +92,16 @@ fn real_main() -> Result<i32, AppError> {
 
     let out = render::render(&report, resolved.format, &term, resolved.all)?;
     writeln!(term.out(), "{out}").map_err(anyhow::Error::from)?;
+
+    let blocked = report.verdict == Verdict::Blocked;
+    match action {
+        Action::PrintOnly => {}
+        Action::ApplyFirst => fix::auto_apply(&report, &chain, &id, &path, op, &term)?,
+        Action::Prompt if blocked && !report.fixes.is_empty() => {
+            fix::interactive(&report, &chain, &id, &path, op, &term)?
+        }
+        Action::Prompt => {}
+    }
     Ok(report::exit_code(&report))
 }
 

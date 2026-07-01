@@ -9,5 +9,5 @@ chain srv pass x
 chain data block x drwxr-x--- 4 root staff 4096 /srv/data   others lack x; alice is not owner or in group staff
 chain report.txt not_reached r not reached
 evidence traverse ls_ld drwxr-x--- 4 root staff 4096 /srv/data
-fix low sudo chmod 'o+x' /srv/data
+fix low run sudo chmod 'o+x' /srv/data
 fix-note others need +x to descend into /srv/data toward report.txt

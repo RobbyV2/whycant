@@ -1,7 +1,7 @@
 use crate::engine::{Layer, LayerResult};
 use crate::identity::Identity;
 use crate::op::Op;
-use crate::report::{Certainty, Evidence, EvidenceSource, Fix, LayerId, Risk};
+use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use std::fs::Metadata;
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -82,7 +82,8 @@ fn build_fix(id: &Identity, dir: &Path, meta: &Metadata) -> (Fix, String) {
         Class::Group => ("g+x", "group"),
         Class::Other => ("o+x", "others"),
     };
-    let needs_root = id.uid != meta.uid();
+    let euid = rustix::process::geteuid();
+    let needs_root = !euid.is_root() && euid.as_raw() != meta.uid();
     let target = dir.display().to_string();
     let detail = format!(
         "{} not traversable by {}; missing {} execute bit",
@@ -91,7 +92,9 @@ fn build_fix(id: &Identity, dir: &Path, meta: &Metadata) -> (Fix, String) {
         who
     );
     let fix = Fix {
-        argv: vec!["chmod".into(), sym.into(), target.clone()],
+        action: FixAction::Run {
+            argv: vec!["chmod".into(), sym.into(), target.clone()],
+        },
         needs_root,
         description: format!("grant search (execute) on {target}"),
         risk: Risk::Low,
@@ -196,9 +199,15 @@ mod tests {
             .all(|e| e.path.as_deref() != Some(c.as_path())));
 
         let fix = &r.fixes[0];
-        assert_eq!(fix.argv.last().unwrap(), &b.display().to_string());
-        assert!(fix.argv.iter().any(|s| s == "o+x"));
-        assert!(fix.needs_root);
+        let FixAction::Run { argv } = &fix.action else {
+            panic!("expected run fix");
+        };
+        assert_eq!(argv.last().unwrap(), &b.display().to_string());
+        assert!(argv.iter().any(|s| s == "o+x"));
+        assert!(
+            !fix.needs_root,
+            "current user owns the dir; no sudo to chmod"
+        );
 
         mk(0o755, &b);
         let _ = fs::remove_dir_all(&base);

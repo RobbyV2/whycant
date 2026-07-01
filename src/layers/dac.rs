@@ -1,7 +1,7 @@
 use crate::engine::{Layer, LayerResult, LayerStatus};
 use crate::identity::Identity;
 use crate::op::{gating_node, GateTarget, Op};
-use crate::report::{Certainty, Evidence, EvidenceSource, Fix, LayerId, Risk};
+use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use std::fs::{self, Metadata};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
@@ -154,19 +154,23 @@ fn grant_fixes(id: &Identity, meta: &Metadata, p: &Path, op: Op) -> Vec<Fix> {
     let needs_root = id.uid != meta.uid();
     vec![
         Fix {
-            argv: vec![
-                "setfacl".into(),
-                "-m".into(),
-                format!("u:{who}:{perm}"),
-                pstr.clone(),
-            ],
+            action: FixAction::Run {
+                argv: vec![
+                    "setfacl".into(),
+                    "-m".into(),
+                    format!("u:{who}:{perm}"),
+                    pstr.clone(),
+                ],
+            },
             needs_root,
             description: format!("grant {who} {perm} on {pstr} via a named-user ACL entry"),
             risk: Risk::Low,
             rationale: "named-user entry only".into(),
         },
         Fix {
-            argv: vec!["chmod".into(), format!("o+{perm}"), pstr.clone()],
+            action: FixAction::Run {
+                argv: vec!["chmod".into(), format!("o+{perm}"), pstr.clone()],
+            },
             needs_root,
             description: format!("grant {perm} to the other class on {pstr}"),
             risk: Risk::Medium,
@@ -178,7 +182,9 @@ fn grant_fixes(id: &Identity, meta: &Metadata, p: &Path, op: Op) -> Vec<Fix> {
 fn chown_fix(id: &Identity, file: &Path) -> Fix {
     let fstr = file.to_string_lossy().into_owned();
     Fix {
-        argv: vec!["chown".into(), id.uid.to_string(), fstr.clone()],
+        action: FixAction::Run {
+            argv: vec!["chown".into(), id.uid.to_string(), fstr.clone()],
+        },
         needs_root: true,
         description: format!("chown {fstr} to uid {}", id.uid),
         risk: Risk::Medium,
@@ -330,7 +336,7 @@ mod tests {
         assert!(r
             .fixes
             .iter()
-            .any(|f| f.argv.first().map(String::as_str) == Some("setfacl")));
+            .any(|f| f.argv().first().map(String::as_str) == Some("setfacl")));
     }
 
     #[test]

@@ -85,11 +85,14 @@ expression: json
   ],
   "fixes": [
     {
-      "argv": [
-        "chmod",
-        "o+x",
-        "/srv/data"
-      ],
+      "action": {
+        "kind": "run",
+        "argv": [
+          "chmod",
+          "o+x",
+          "/srv/data"
+        ]
+      },
       "needs_root": true,
       "description": "grant others traverse on the blocking directory",
       "risk": "low",
