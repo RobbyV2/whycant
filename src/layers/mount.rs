@@ -87,11 +87,24 @@ impl MountInfo {
 fn read_mount(path: &Path) -> Result<MountInfo, rustix::io::Errno> {
     let f = statvfs(path)?.f_flag;
     let mountpoint = find_mount_point(path);
+    let (noexec, nodev) = {
+        #[cfg(target_os = "linux")]
+        {
+            (
+                f.contains(StatVfsMountFlags::NOEXEC),
+                f.contains(StatVfsMountFlags::NODEV),
+            )
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            (false, false)
+        }
+    };
     let mut info = MountInfo {
         ro: f.contains(StatVfsMountFlags::RDONLY),
-        noexec: f.contains(StatVfsMountFlags::NOEXEC),
+        noexec,
         nosuid: f.contains(StatVfsMountFlags::NOSUID),
-        nodev: f.contains(StatVfsMountFlags::NODEV),
+        nodev,
         mountpoint: mountpoint.to_string_lossy().into_owned(),
         source: None,
         fstype: None,

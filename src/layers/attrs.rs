@@ -182,8 +182,8 @@ fn fix(path: &Path, reason: Reason) -> Fix {
 ))]
 fn check_node(path: &Path, op: Op) -> Option<LayerResult> {
     let flags = stat_flags(path)?;
-    let immutable = flags & (libc::UF_IMMUTABLE | libc::SF_IMMUTABLE) != 0;
-    let append = flags & (libc::UF_APPEND | libc::SF_APPEND) != 0;
+    let immutable = flags & (libc::UF_IMMUTABLE as u32 | libc::SF_IMMUTABLE as u32) != 0;
+    let append = flags & (libc::UF_APPEND as u32 | libc::SF_APPEND as u32) != 0;
     let reason = classify(immutable, append, op)?;
     Some(block_result(path, op, reason, chflags_line(flags, path)))
 }
@@ -213,10 +213,10 @@ fn stat_flags(path: &Path) -> Option<u32> {
 ))]
 fn chflags_line(flags: u32, path: &Path) -> Evidence {
     const TABLE: &[(u32, &str)] = &[
-        (libc::UF_IMMUTABLE, "uchg"),
-        (libc::SF_IMMUTABLE, "schg"),
-        (libc::UF_APPEND, "uappnd"),
-        (libc::SF_APPEND, "sappnd"),
+        (libc::UF_IMMUTABLE as u32, "uchg"),
+        (libc::SF_IMMUTABLE as u32, "schg"),
+        (libc::UF_APPEND as u32, "uappnd"),
+        (libc::SF_APPEND as u32, "sappnd"),
     ];
     let set: Vec<&str> = TABLE
         .iter()

@@ -1,8 +1,14 @@
-use crate::engine::{Layer, LayerResult, LayerStatus};
+#![cfg_attr(not(target_os = "linux"), allow(dead_code))]
+use crate::engine::{Layer, LayerResult};
 use crate::identity::Identity;
 use crate::op::Op;
-use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
+use crate::report::{Fix, FixAction, LayerId, Risk};
 use std::path::Path;
+
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+use crate::engine::LayerStatus;
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+use crate::report::{Certainty, Evidence, EvidenceSource};
 
 pub struct MacLayer;
 
