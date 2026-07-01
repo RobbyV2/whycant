@@ -37,7 +37,10 @@ pub fn render_report(report: &Report, term: &TermCtx, verbose: bool, layout: Lay
 
 fn paint(term: &TermCtx, style: Style, s: &str) -> String {
     match term.colored(Stream::Out) {
-        true => format!("{}{}{}", style.render(), s, style.render_reset()),
+        true => {
+            term.mark_dirty();
+            format!("{}{}{}", style.render(), s, style.render_reset())
+        }
         false => s.to_string(),
     }
 }
@@ -402,6 +405,7 @@ mod tests {
         TermCtx {
             color: ColorDepth::None,
             glyphs: GlyphSet::Unicode,
+            hyperlinks: false,
             width: 80,
         }
     }

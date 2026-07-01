@@ -1,0 +1,12 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+[1m[38;2;46;204;113m✓ ALLOWED[0m  read ]8;;file:///home/alice/notes.txt\/home/alice/notes.txt]8;;\
+
+  /          [38;2;46;204;113m✓[0m x
+  home       [38;2;46;204;113m✓[0m x
+  alice      [38;2;46;204;113m✓[0m x
+  notes.txt  [38;2;46;204;113m✓[0m r  -rw-r--r-- 1 alice alice 220 /home/alice/notes.txt
+
+[38;2;136;136;136mcross-check: model and kernel concur[0m

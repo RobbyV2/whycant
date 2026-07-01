@@ -54,10 +54,10 @@ fn real_main() -> Result<i32, AppError> {
         }
     };
     if let Some(shell) = cli.completions {
-        cli::print_completions(shell);
+        cli::print_completions(shell)?;
         return Ok(0);
     }
-    if cli.manpage {
+    if cli.man {
         cli::print_manpage()?;
         return Ok(0);
     }

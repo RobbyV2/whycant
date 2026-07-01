@@ -4,6 +4,7 @@ use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::{generate, Shell};
 use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
+use std::io::Write;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -45,10 +46,10 @@ pub struct Cli {
     pub apply: bool,
     #[arg(long)]
     pub yes: bool,
-    #[arg(long, value_enum, hide = true)]
+    #[arg(long, value_enum, value_name = "SHELL", hide = true)]
     pub completions: Option<Shell>,
-    #[arg(long, hide = true)]
-    pub manpage: bool,
+    #[arg(long = "man", hide = true)]
+    pub man: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
@@ -152,14 +153,53 @@ fn force_color() -> bool {
     env_truthy("CLICOLOR_FORCE") || env_truthy("FORCE_COLOR")
 }
 
-pub fn print_completions(shell: Shell) {
+const EXIT_STATUS_ROFF: &str = "\
+.SH \"EXIT STATUS\"
+.TP
+.B 0
+Allowed; nothing denies the operation.
+.TP
+.B 1
+Blocked (proven).
+.TP
+.B 2
+Blocked but indeterminate; needs elevated privilege to decide.
+.TP
+.B 3
+Target error: ENOENT, not a regular file, or broken symlink.
+.TP
+.B 64
+Usage error.
+";
+
+pub fn render_completions(shell: Shell) -> Vec<u8> {
     let mut cmd = Cli::command();
     let name = cmd.get_name().to_string();
-    generate(shell, &mut cmd, name, &mut std::io::stdout());
+    let mut buf = Vec::new();
+    generate(shell, &mut cmd, name, &mut buf);
+    buf
+}
+
+pub fn render_manpage() -> anyhow::Result<Vec<u8>> {
+    let man = clap_mangen::Man::new(Cli::command());
+    let mut buf = Vec::new();
+    man.render_title(&mut buf)?;
+    man.render_name_section(&mut buf)?;
+    man.render_synopsis_section(&mut buf)?;
+    man.render_description_section(&mut buf)?;
+    man.render_options_section(&mut buf)?;
+    buf.extend_from_slice(EXIT_STATUS_ROFF.as_bytes());
+    man.render_version_section(&mut buf)?;
+    Ok(buf)
+}
+
+pub fn print_completions(shell: Shell) -> anyhow::Result<()> {
+    std::io::stdout().write_all(&render_completions(shell))?;
+    Ok(())
 }
 
 pub fn print_manpage() -> anyhow::Result<()> {
-    clap_mangen::Man::new(Cli::command()).render(&mut std::io::stdout())?;
+    std::io::stdout().write_all(&render_manpage()?)?;
     Ok(())
 }
 
@@ -267,6 +307,23 @@ mod tests {
             parse(&["whycant", "read", "/p"]).resolve(&cfg).interactive,
             None
         );
+    }
+
+    #[test]
+    fn completions_carry_binary_name() {
+        let out = String::from_utf8(render_completions(Shell::Bash)).unwrap();
+        assert!(!out.is_empty());
+        assert!(out.contains("whycant"));
+    }
+
+    #[test]
+    fn manpage_lists_exit_codes() {
+        let out = String::from_utf8(render_manpage().unwrap()).unwrap();
+        assert!(!out.is_empty());
+        assert!(out.contains("EXIT STATUS"));
+        for code in ["0", "1", "2", "3", "64"] {
+            assert!(out.contains(code), "missing exit code {code}");
+        }
     }
 
     #[test]

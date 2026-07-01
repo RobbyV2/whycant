@@ -15,6 +15,7 @@ pub fn render_plain(report: &Report, term: &TermCtx) -> String {
     let plain = TermCtx {
         color: ColorDepth::None,
         glyphs: GlyphSet::Ascii,
+        hyperlinks: false,
         width: term.width,
     };
     render_report(report, &plain, true, Layout::Plain)
@@ -33,6 +34,7 @@ mod tests {
         TermCtx {
             color: ColorDepth::None,
             glyphs: GlyphSet::Ascii,
+            hyperlinks: false,
             width: 80,
         }
     }

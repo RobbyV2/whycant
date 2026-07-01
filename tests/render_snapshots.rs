@@ -5,19 +5,31 @@ use whycant::report::*;
 use whycant::term::{ColorDepth, GlyphSet, TermCtx};
 
 fn term(color: ColorDepth, glyphs: GlyphSet) -> TermCtx {
+    ctx(color, glyphs, false)
+}
+
+fn ctx(color: ColorDepth, glyphs: GlyphSet, hyperlinks: bool) -> TermCtx {
     TermCtx {
         color,
         glyphs,
+        hyperlinks,
         width: 80,
     }
 }
 
-fn perms() -> [(&'static str, TermCtx); 4] {
+fn perms() -> [(&'static str, TermCtx); 5] {
     [
-        ("nocolor", term(ColorDepth::None, GlyphSet::Unicode)),
-        ("color", term(ColorDepth::TrueColor, GlyphSet::Unicode)),
-        ("dumb", term(ColorDepth::None, GlyphSet::Ascii)),
-        ("piped", term(ColorDepth::None, GlyphSet::Unicode)),
+        ("nocolor", ctx(ColorDepth::None, GlyphSet::Unicode, false)),
+        (
+            "color",
+            ctx(ColorDepth::TrueColor, GlyphSet::Unicode, false),
+        ),
+        (
+            "hyperlink",
+            ctx(ColorDepth::TrueColor, GlyphSet::Unicode, true),
+        ),
+        ("dumb", ctx(ColorDepth::None, GlyphSet::Ascii, false)),
+        ("piped", ctx(ColorDepth::None, GlyphSet::Unicode, false)),
     ]
 }
 
