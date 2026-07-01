@@ -12,6 +12,7 @@ anstream = "0.6"
 anstyle = "1"
 anstyle-query = "1"
 anyhow = "1"
+caps = "0.5"
 clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 clap_mangen = "0.2"
@@ -28,6 +29,7 @@ terminal_size = "0.3"
 thiserror = "2"
 toml = "0.8"
 uzers = "0.12"
+xattr = "1"
 
 [dev-dependencies]
 insta = { version = "1", features = ["redactions"] }
