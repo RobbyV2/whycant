@@ -31,6 +31,12 @@ check-macos:
 check-freebsd:
     cargo check --target x86_64-unknown-freebsd
 
+clippy-macos:
+    cargo clippy --target x86_64-apple-darwin -- -D warnings
+
+clippy-freebsd:
+    cargo clippy --target x86_64-unknown-freebsd -- -D warnings
+
 snapshot-update:
     INSTA_UPDATE=always cargo test
 
@@ -40,4 +46,4 @@ man:
 completions shell:
     cargo run -- --completions {{shell}}
 
-ci: fmt-check clippy test
+ci: fmt-check clippy clippy-macos clippy-freebsd test

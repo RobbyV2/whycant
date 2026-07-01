@@ -52,9 +52,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-apple-darwin, x86_64-unknown-freebsd
+          components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --target x86_64-apple-darwin
-      - run: cargo check --target x86_64-unknown-freebsd
+      - run: cargo clippy --target x86_64-apple-darwin -- -D warnings
+      - run: cargo clippy --target x86_64-unknown-freebsd -- -D warnings
 
   root-tests:
     runs-on: ubuntu-latest

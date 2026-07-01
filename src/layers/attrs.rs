@@ -180,6 +180,7 @@ fn fix(path: &Path, reason: Reason) -> Fix {
     target_os = "netbsd",
     target_os = "macos"
 ))]
+#[allow(clippy::unnecessary_cast)]
 fn check_node(path: &Path, op: Op) -> Option<LayerResult> {
     let flags = stat_flags(path)?;
     let immutable = flags & (libc::UF_IMMUTABLE as u32 | libc::SF_IMMUTABLE as u32) != 0;
@@ -211,6 +212,7 @@ fn stat_flags(path: &Path) -> Option<u32> {
     target_os = "netbsd",
     target_os = "macos"
 ))]
+#[allow(clippy::unnecessary_cast)]
 fn chflags_line(flags: u32, path: &Path) -> Evidence {
     const TABLE: &[(u32, &str)] = &[
         (libc::UF_IMMUTABLE as u32, "uchg"),
@@ -271,6 +273,7 @@ fn check_node(_path: &Path, _op: Op) -> Option<LayerResult> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(target_os = "linux")]
     use crate::engine::LayerStatus;
 
     #[test]
