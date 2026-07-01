@@ -13,7 +13,7 @@ mod term;
 use anyhow::{Result, anyhow};
 use clap::Parser;
 use cli::{Action, Cli, Format};
-use op::Op;
+use op::{Op, OpArg};
 use report::Verdict;
 use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
@@ -109,15 +109,83 @@ fn dispatch(cli: &Cli) -> Result<(Op, PathBuf)> {
     if !cli.cmd.is_empty() {
         return op::infer_cmd(&cli.cmd).ok_or_else(|| anyhow!("cannot infer op from command"));
     }
-    match (cli.op, &cli.path) {
-        (Some(oparg), Some(p)) => Ok((oparg.into(), p.clone())),
-        (None, Some(p)) => {
-            let op = match std::fs::symlink_metadata(p) {
-                Ok(meta) => op::infer_bare(&meta, p),
-                Err(_) => Op::Read,
-            };
-            Ok((op, p.clone()))
-        }
+    match (&cli.op, &cli.path) {
+        (Some(tok), Some(p)) => match OpArg::parse_keyword(tok) {
+            Some(oparg) => Ok((oparg.into(), p.clone())),
+            None => Err(anyhow!("unknown op '{tok}'; usage: whycant <op> <path>")),
+        },
+        (Some(tok), None) => match OpArg::parse_keyword(tok) {
+            Some(_) => Err(anyhow!("usage: whycant <op> <path>")),
+            None => {
+                let p = PathBuf::from(tok);
+                let op = match std::fs::symlink_metadata(&p) {
+                    Ok(meta) => op::infer_bare(&meta, &p),
+                    Err(_) => Op::Read,
+                };
+                Ok((op, p))
+            }
+        },
         _ => Err(anyhow!("usage: whycant <op> <path>")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+    use std::fs::Permissions;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn cli(args: &[&str]) -> Cli {
+        Cli::try_parse_from(args).unwrap()
+    }
+
+    #[test]
+    fn bare_dir_infers_traverse() {
+        let d = tempfile::tempdir().unwrap();
+        let (op, path) =
+            dispatch(&cli(&["whycant", "--json", d.path().to_str().unwrap()])).unwrap();
+        assert_eq!(op, Op::Traverse);
+        assert_eq!(path, d.path());
+    }
+
+    #[test]
+    fn bare_regular_file_infers_read() {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("plain");
+        std::fs::write(&f, "x").unwrap();
+        std::fs::set_permissions(&f, Permissions::from_mode(0o644)).unwrap();
+        let (op, path) = dispatch(&cli(&["whycant", "--json", f.to_str().unwrap()])).unwrap();
+        assert_eq!(op, Op::Read);
+        assert_eq!(path, f);
+    }
+
+    #[test]
+    fn bare_exec_file_infers_exec() {
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("prog");
+        std::fs::write(&f, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&f, Permissions::from_mode(0o755)).unwrap();
+        let (op, _) = dispatch(&cli(&["whycant", "--json", f.to_str().unwrap()])).unwrap();
+        assert_eq!(op, Op::Exec);
+    }
+
+    #[test]
+    fn explicit_read_stays_read() {
+        let (op, path) = dispatch(&cli(&["whycant", "read", "/etc/hostname"])).unwrap();
+        assert_eq!(op, Op::Read);
+        assert_eq!(path, PathBuf::from("/etc/hostname"));
+    }
+
+    #[test]
+    fn lone_invalid_token_is_path() {
+        let (op, path) = dispatch(&cli(&["whycant", "not-an-op-zzz"])).unwrap();
+        assert_eq!(op, Op::Read);
+        assert_eq!(path, PathBuf::from("not-an-op-zzz"));
+    }
+
+    #[test]
+    fn lone_op_keyword_errors() {
+        assert!(dispatch(&cli(&["whycant", "read"])).is_err());
     }
 }

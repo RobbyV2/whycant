@@ -1,5 +1,4 @@
 use crate::config::{Settings, Tristate};
-use crate::op::OpArg;
 use clap::{CommandFactory, Parser, ValueEnum};
 use clap_complete::{Shell, generate};
 use serde::{Deserialize, Serialize};
@@ -21,8 +20,8 @@ const VERSION: &str = concat!(
     about = "Explain, with evidence, why a filesystem operation is denied."
 )]
 pub struct Cli {
-    #[arg(value_enum, value_name = "OP")]
-    pub op: Option<OpArg>,
+    #[arg(value_name = "OP")]
+    pub op: Option<String>,
     #[arg(value_name = "PATH")]
     pub path: Option<PathBuf>,
     #[arg(last = true, value_name = "CMD")]
@@ -226,7 +225,7 @@ mod tests {
     #[test]
     fn explicit_op_path() {
         let c = parse(&["whycant", "read", "/etc/shadow"]);
-        assert!(matches!(c.op, Some(OpArg::Read)));
+        assert_eq!(c.op.as_deref(), Some("read"));
         assert_eq!(c.path.as_deref(), Some(Path::new("/etc/shadow")));
         assert!(c.cmd.is_empty());
     }
@@ -241,7 +240,7 @@ mod tests {
     #[test]
     fn cd_alias_parses() {
         let c = parse(&["whycant", "cd", "/srv"]);
-        assert!(matches!(c.op, Some(OpArg::Cd)));
+        assert_eq!(c.op.as_deref(), Some("cd"));
     }
 
     #[test]

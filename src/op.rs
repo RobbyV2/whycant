@@ -27,6 +27,12 @@ pub enum OpArg {
     Create,
 }
 
+impl OpArg {
+    pub fn parse_keyword(s: &str) -> Option<Self> {
+        <Self as ValueEnum>::from_str(s, true).ok()
+    }
+}
+
 impl From<OpArg> for Op {
     fn from(a: OpArg) -> Self {
         match a {
