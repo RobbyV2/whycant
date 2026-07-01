@@ -7,6 +7,11 @@ edition = "2021"
 name = "whycant"
 path = "src/main.rs"
 
+[features]
+default = ["acl"]
+acl = ["dep:exacl"]
+root-tests = []
+
 [dependencies]
 anstream = "0.6"
 anstyle = "1"
@@ -16,7 +21,7 @@ clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 clap_mangen = "0.2"
 config = "0.14"
-exacl = "0.12"
+exacl = { version = "0.12", optional = true }
 inquire = "0.7"
 libc = "0.2"
 rustix = { version = "0.38", features = ["fs", "process", "thread"] }

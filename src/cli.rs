@@ -7,10 +7,17 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::PathBuf;
 
+const VERSION: &str = concat!(
+    env!("CARGO_PKG_VERSION"),
+    " (",
+    env!("WHYCANT_GIT_HASH"),
+    ")"
+);
+
 #[derive(Parser)]
 #[command(
     name = "whycant",
-    version,
+    version = VERSION,
     about = "Explain, with evidence, why a filesystem operation is denied."
 )]
 pub struct Cli {

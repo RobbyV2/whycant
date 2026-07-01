@@ -17,11 +17,11 @@ impl Layer for AclLayer {
         LayerId::Acl
     }
     fn check(&self, id: &Identity, path: &Path, op: Op) -> LayerResult {
-        #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+        #[cfg(all(feature = "acl", any(target_os = "linux", target_os = "freebsd")))]
         {
             posix::check(id, path, op)
         }
-        #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+        #[cfg(not(all(feature = "acl", any(target_os = "linux", target_os = "freebsd"))))]
         {
             let _ = (id, path, op);
             LayerResult::skip()
@@ -29,7 +29,7 @@ impl Layer for AclLayer {
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+#[cfg(all(feature = "acl", any(target_os = "linux", target_os = "freebsd")))]
 mod posix {
     use crate::engine::LayerResult;
     use crate::identity::Identity;
