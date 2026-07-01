@@ -76,10 +76,7 @@ fn linux_check(id: &Identity, path: &Path, op: Op) -> LayerResult {
             notes.join("; "),
             op_word(op)
         ),
-        (false, false) => format!(
-            "{} on target; annotation only",
-            notes.join("; ")
-        ),
+        (false, false) => format!("{} on target; annotation only", notes.join("; ")),
         (true, _) => format!("no capability affects {} of the target", op_word(op)),
     };
 
@@ -100,15 +97,9 @@ fn info(evidence: Vec<Evidence>, detail: String) -> LayerResult {
 #[cfg(target_os = "linux")]
 fn dac_bypass_note(cap: Capability) -> Option<&'static str> {
     match cap {
-        Capability::CAP_DAC_OVERRIDE => {
-            Some("bypasses r/w/x checks")
-        }
-        Capability::CAP_DAC_READ_SEARCH => {
-            Some("bypasses read/traverse checks")
-        }
-        Capability::CAP_FOWNER => {
-            Some("bypasses owner checks (sticky delete, mode)")
-        }
+        Capability::CAP_DAC_OVERRIDE => Some("bypasses r/w/x checks"),
+        Capability::CAP_DAC_READ_SEARCH => Some("bypasses read/traverse checks"),
+        Capability::CAP_FOWNER => Some("bypasses owner checks (sticky delete, mode)"),
         _ => None,
     }
 }

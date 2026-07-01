@@ -151,10 +151,7 @@ fn evaluate(info: &MountInfo, _path: &Path, op: Op) -> LayerResult {
         ),
         Op::Exec if info.noexec => LayerResult::block(
             Certainty::Proven,
-            format!(
-                "{} mounted noexec; exec refused",
-                info.mountpoint
-            ),
+            format!("{} mounted noexec; exec refused", info.mountpoint),
             vec![ev],
             vec![relocate_advice(), remount_fix(&info.mountpoint, "exec")],
         ),
@@ -198,9 +195,7 @@ fn relocate_advice() -> Fix {
         needs_root: false,
         description: "run from an exec-mounted filesystem".into(),
         risk: Risk::Low,
-        rationale:
-            "avoids weakening the mount"
-                .into(),
+        rationale: "avoids weakening the mount".into(),
     }
 }
 

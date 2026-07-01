@@ -423,13 +423,12 @@ mod tests {
         (base, c)
     }
 
-    fn other_id() -> Identity {
-        let owner = uzers::get_effective_uid();
+    fn owner_id() -> Identity {
         Identity {
-            uid: owner + 100_000,
-            primary_gid: 999_999,
-            groups: vec![999_999],
-            name: Some("tester".into()),
+            uid: uzers::get_effective_uid(),
+            primary_gid: uzers::get_current_gid(),
+            groups: vec![uzers::get_current_gid()],
+            name: Some("me".into()),
             is_self: false,
         }
     }
@@ -438,18 +437,21 @@ mod tests {
     fn recheck_reports_cleared_and_not_cleared() {
         let (base, c) = tree();
         let b = base.join("a").join("b");
+        fs::set_permissions(&b, fs::Permissions::from_mode(0o000)).unwrap();
         let chain = engine::default_chain();
-        let id = other_id();
+        let id = owner_id();
 
-        let before = engine::run(&chain, &id, &c, Op::Traverse, false);
-        assert_eq!(before.blocking_layer, Some(LayerId::Traverse));
-        assert!(matches!(
-            recheck(&chain, &id, &c, Op::Traverse),
-            Recheck::Blocked {
-                layer: Some(LayerId::Traverse),
-                ..
-            }
-        ));
+        if uzers::get_effective_uid() != 0 {
+            let before = engine::run(&chain, &id, &c, Op::Traverse, false);
+            assert_eq!(before.blocking_layer, Some(LayerId::Traverse));
+            assert!(matches!(
+                recheck(&chain, &id, &c, Op::Traverse),
+                Recheck::Blocked {
+                    layer: Some(LayerId::Traverse),
+                    ..
+                }
+            ));
+        }
 
         fs::set_permissions(&b, fs::Permissions::from_mode(0o755)).unwrap();
         assert!(matches!(

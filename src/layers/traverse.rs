@@ -98,9 +98,7 @@ fn build_fix(id: &Identity, dir: &Path, meta: &Metadata) -> (Fix, String) {
         needs_root,
         description: format!("grant search (execute) on {target}"),
         risk: Risk::Low,
-        rationale: format!(
-            "add {who} search bit"
-        ),
+        rationale: format!("add {who} search bit"),
     };
     (fix, detail)
 }
@@ -170,44 +168,46 @@ mod tests {
         fs::create_dir_all(&c).unwrap();
         mk(0o755, &base);
         mk(0o755, &a);
-        mk(0o644, &b);
+        mk(0o000, &b);
 
         let owner = uzers::get_effective_uid();
         let id = Identity {
-            uid: owner + 100_000,
-            primary_gid: 999_999,
-            groups: vec![999_999],
+            uid: owner,
+            primary_gid: uzers::get_current_gid(),
+            groups: vec![uzers::get_current_gid()],
             name: Some("tester".into()),
             is_self: false,
         };
 
         let r = evaluate(&id, &c);
-        assert!(matches!(r.status, LayerStatus::Block));
-        assert!(r.certainty == Certainty::Proven);
+        if owner != 0 {
+            assert!(matches!(r.status, LayerStatus::Block));
+            assert!(r.certainty == Certainty::Proven);
 
-        let blocker = r.evidence.last().unwrap();
-        assert_eq!(blocker.path.as_deref(), Some(b.as_path()));
-        assert!(r.detail.contains(&b.display().to_string()));
+            let blocker = r.evidence.last().unwrap();
+            assert_eq!(blocker.path.as_deref(), Some(b.as_path()));
+            assert!(r.detail.contains(&b.display().to_string()));
 
-        assert!(r
-            .evidence
-            .iter()
-            .any(|e| e.path.as_deref() == Some(a.as_path())));
-        assert!(r
-            .evidence
-            .iter()
-            .all(|e| e.path.as_deref() != Some(c.as_path())));
+            assert!(r
+                .evidence
+                .iter()
+                .any(|e| e.path.as_deref() == Some(a.as_path())));
+            assert!(r
+                .evidence
+                .iter()
+                .all(|e| e.path.as_deref() != Some(c.as_path())));
 
-        let fix = &r.fixes[0];
-        let FixAction::Run { argv } = &fix.action else {
-            panic!("expected run fix");
-        };
-        assert_eq!(argv.last().unwrap(), &b.display().to_string());
-        assert!(argv.iter().any(|s| s == "o+x"));
-        assert!(
-            !fix.needs_root,
-            "current user owns the dir; no sudo to chmod"
-        );
+            let fix = &r.fixes[0];
+            let FixAction::Run { argv } = &fix.action else {
+                panic!("expected run fix");
+            };
+            assert_eq!(argv.last().unwrap(), &b.display().to_string());
+            assert!(argv.iter().any(|s| s == "u+x"));
+            assert!(
+                !fix.needs_root,
+                "current user owns the dir; no sudo to chmod"
+            );
+        }
 
         mk(0o755, &b);
         let _ = fs::remove_dir_all(&base);

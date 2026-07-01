@@ -76,9 +76,7 @@ fn advice(text: impl Into<String>) -> Fix {
         needs_root: false,
         description: "server-side check".into(),
         risk: Risk::Low,
-        rationale:
-            "server arbitrates access"
-                .into(),
+        rationale: "server arbitrates access".into(),
     }
 }
 
@@ -103,25 +101,17 @@ fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<
                 "{} is an {} mount; NFS authorizes by numeric uid",
                 m.mp, m.fstype
             )];
-            let mut fixes = vec![advice(
-                "confirm the uid maps server-side (idmapd/NFSv4)",
-            )];
+            let mut fixes = vec![advice("confirm the uid maps server-side (idmapd/NFSv4)")];
             let mut level = Level::Info;
             if write && (target_root || euid_root) {
                 level = Level::Suspect;
                 notes.push("root, so root_squash may reject this write".into());
-                fixes.push(advice(
-                    "check root_squash in /etc/exports",
-                ));
+                fixes.push(advice("check root_squash in /etc/exports"));
             }
             if write && has_flag(m.opts, "ro") {
                 level = Level::Suspect;
-                notes.push(
-                    "ro mount; export may be read-only".into(),
-                );
-                fixes.push(advice(
-                    "verify export is rw in /etc/exports",
-                ));
+                notes.push("ro mount; export may be read-only".into());
+                fixes.push(advice("verify export is rw in /etc/exports"));
             }
             Some(Finding {
                 level,

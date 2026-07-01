@@ -280,10 +280,7 @@ mod linux {
                 )
             }
             None => match aa.as_ref().filter(|a| a.mode != AaMode::Unconfined) {
-                Some(a) => format!(
-                    "profile {} enforce; `sudo aa-status`",
-                    a.name
-                ),
+                Some(a) => format!("profile {} enforce; `sudo aa-status`", a.name),
                 None => "`sudo ausearch -m avc -ts recent`; adjust MAC policy".to_string(),
             },
         };
@@ -326,8 +323,12 @@ mod linux {
 
     fn suspect_fix(kind: MacKind) -> Fix {
         let text = match kind {
-            MacKind::Selinux => "`sudo ausearch -m avc -ts recent`; adjust with `chcon`/`semanage fcontext`",
-            MacKind::Apparmor => "`sudo journalctl -k | grep DENIED` or `sudo aa-status`; adjust profile",
+            MacKind::Selinux => {
+                "`sudo ausearch -m avc -ts recent`; adjust with `chcon`/`semanage fcontext`"
+            }
+            MacKind::Apparmor => {
+                "`sudo journalctl -k | grep DENIED` or `sudo aa-status`; adjust profile"
+            }
         };
         advice(text.to_string())
     }
@@ -423,11 +424,7 @@ mod linux {
                 for note in presence_notes(&se, smack, tomoyo) {
                     ev_all.push(ev(EvidenceSource::MacStatus, note, None));
                 }
-                skip_note(
-                    ev_all,
-                    "MAC present; no denial signal"
-                        .into(),
-                )
+                skip_note(ev_all, "MAC present; no denial signal".into())
             }
         }
     }

@@ -178,14 +178,10 @@ fn check_container(path: &Path) -> LayerResult {
                 needs_root: true,
                 description: "resolve the user-namespace uid mapping".into(),
                 risk: Risk::Medium,
-                rationale:
-                    "uid unmapped in namespace"
-                        .into(),
+                rationale: "uid unmapped in namespace".into(),
             };
             LayerResult::suspect(
-                format!(
-                    "uid {o} unmapped in namespace, appears as nobody ({overflow})"
-                ),
+                format!("uid {o} unmapped in namespace, appears as nobody ({overflow})"),
                 ev,
                 vec![fix],
             )
