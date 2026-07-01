@@ -85,7 +85,7 @@ fn real_main() -> Result<i32, AppError> {
         term.banner(&report.identity.privilege_note);
     }
 
-    let out = render::render(&report, resolved.format, &term)?;
+    let out = render::render(&report, resolved.format, &term, resolved.all)?;
     writeln!(term.out(), "{out}").map_err(anyhow::Error::from)?;
     Ok(report::exit_code(&report))
 }

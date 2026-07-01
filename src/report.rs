@@ -77,7 +77,7 @@ pub enum Certainty {
     Indeterminate,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum LayerId {
     Existence,
@@ -101,6 +101,7 @@ pub struct PathComponent {
     pub need: String,
     pub evidence: Option<Evidence>,
     pub note: Option<String>,
+    pub layer: Option<LayerId>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -134,6 +135,7 @@ pub struct LayerResult {
 pub enum LayerStatus {
     Pass,
     Block,
+    Suspect,
     Skip,
     Unknown,
 }
@@ -180,23 +182,20 @@ pub enum Risk {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CrossCheck {
-    pub kernel_allows: bool,
+    pub available: bool,
+    pub kernel_allows: Option<bool>,
     pub model_allows: bool,
     pub agree: bool,
+    pub kernel_rwx: Option<[bool; 3]>,
     pub message: Option<String>,
 }
 
 pub fn exit_code(report: &Report) -> i32 {
-    if let Some(cc) = &report.cross_check {
-        if !cc.agree {
-            return 3;
-        }
-    }
     match (report.verdict, report.certainty) {
         (Verdict::Allowed, _) => 0,
         (Verdict::Blocked, Certainty::Proven) => 1,
         (Verdict::Blocked, _) => 2,
         (Verdict::Indeterminate, _) => 2,
-        (Verdict::TargetError, _) => 4,
+        (Verdict::TargetError, _) => 3,
     }
 }

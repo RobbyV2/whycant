@@ -5,10 +5,10 @@ use crate::term::{Glyph, GlyphSet, Stream, TermCtx};
 use anstyle::Style;
 use std::path::Path;
 
-pub fn render_human(report: &Report, term: &TermCtx) -> String {
+pub fn render_human(report: &Report, term: &TermCtx, verbose: bool) -> String {
     let mut lines: Vec<String> = Vec::new();
     lines.push(verdict_line(report, term));
-    push_zone(&mut lines, chain_lines(report, term));
+    push_zone(&mut lines, chain_lines(report, term, verbose));
     push_zone(&mut lines, evidence_lines(report, term));
     push_zone(&mut lines, crosscheck_lines(report, term));
     push_zone(&mut lines, fix_lines(report, term));
@@ -108,7 +108,7 @@ fn component_detail(c: &PathComponent) -> String {
     }
 }
 
-fn chain_lines(report: &Report, term: &TermCtx) -> Vec<String> {
+fn chain_lines(report: &Report, term: &TermCtx, verbose: bool) -> Vec<String> {
     let has_block = report
         .evidence_chain
         .iter()
@@ -116,7 +116,7 @@ fn chain_lines(report: &Report, term: &TermCtx) -> Vec<String> {
     let visible: Vec<&PathComponent> = report
         .evidence_chain
         .iter()
-        .filter(|c| !(has_block && matches!(c.mark, Mark::Pass)))
+        .filter(|c| verbose || !(has_block && matches!(c.mark, Mark::Pass)))
         .collect();
     if visible.is_empty() {
         return Vec::new();
@@ -292,6 +292,7 @@ mod tests {
                     need: "x".into(),
                     evidence: None,
                     note: None,
+                    layer: Some(LayerId::Traverse),
                 },
                 PathComponent {
                     name: "home".into(),
@@ -300,6 +301,7 @@ mod tests {
                     need: "x".into(),
                     evidence: None,
                     note: None,
+                    layer: Some(LayerId::Traverse),
                 },
                 PathComponent {
                     name: "alice".into(),
@@ -312,6 +314,7 @@ mod tests {
                         path: None,
                     }),
                     note: Some("www-data lacks traverse".into()),
+                    layer: Some(LayerId::Traverse),
                 },
                 PathComponent {
                     name: "secret.txt".into(),
@@ -320,6 +323,7 @@ mod tests {
                     need: "r".into(),
                     evidence: None,
                     note: None,
+                    layer: None,
                 },
             ],
             layer_results: vec![LayerResult {
@@ -347,7 +351,7 @@ mod tests {
 
     #[test]
     fn blocked_traverse_renders_verdict_and_fix() {
-        let out = render_human(&blocked_traverse(), &plain_term());
+        let out = render_human(&blocked_traverse(), &plain_term(), false);
         assert!(out.contains("\u{2717} BLOCKED"), "verdict line: {out}");
         assert!(
             out.contains("chmod") && out.contains("o+x"),
