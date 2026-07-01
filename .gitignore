@@ -130,3 +130,7 @@ out/
 # Added by cargo
 
 /target
+
+# Internal / never-track
+.env
+*.svg

@@ -1,6 +1,28 @@
 [package]
 name = "whycant"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+
+[[bin]]
+name = "whycant"
+path = "src/main.rs"
 
 [dependencies]
+anstream = "0.6"
+anstyle = "1"
+anstyle-query = "1"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+clap_mangen = "0.2"
+config = "0.14"
+libc = "0.2"
+rustix = { version = "0.38", features = ["fs", "process", "thread"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sudo = "0.6"
+supports-hyperlinks = "3"
+terminal_size = "0.3"
+thiserror = "2"
+toml = "0.8"
+uzers = "0.12"
