@@ -17,16 +17,6 @@ fn owner_of(p: &Path) -> Identity {
     }
 }
 
-fn foreign() -> Identity {
-    Identity {
-        uid: 65534,
-        primary_gid: 65534,
-        groups: vec![65534],
-        name: None,
-        is_self: false,
-    }
-}
-
 #[test]
 fn create_in_writable_owned_dir_is_allowed() {
     let dir = tempfile::tempdir().unwrap();
@@ -44,10 +34,12 @@ fn create_in_writable_owned_dir_is_allowed() {
 #[test]
 fn create_lacking_parent_write_is_dac_block() {
     let dir = tempfile::tempdir().unwrap();
-    fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o755)).unwrap();
-    let target = dir.path().join("newfile");
+    let parent = dir.path().join("box");
+    fs::create_dir(&parent).unwrap();
+    let target = parent.join("newfile");
+    fs::set_permissions(&parent, fs::Permissions::from_mode(0o555)).unwrap();
     let chain = default_chain();
-    let rep = engine::run(&chain, &foreign(), &target, Op::Create, false);
+    let rep = engine::run(&chain, &owner_of(dir.path()), &target, Op::Create, false);
     assert!(
         matches!(rep.verdict, Verdict::Blocked),
         "culprit {:?}",
