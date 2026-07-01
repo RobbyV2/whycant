@@ -33,6 +33,9 @@ fn create_in_writable_owned_dir_is_allowed() {
 
 #[test]
 fn create_lacking_parent_write_is_dac_block() {
+    if rustix::process::geteuid().is_root() {
+        return;
+    }
     let dir = tempfile::tempdir().unwrap();
     let parent = dir.path().join("box");
     fs::create_dir(&parent).unwrap();

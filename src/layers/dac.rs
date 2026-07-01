@@ -355,6 +355,9 @@ mod tests {
 
     #[test]
     fn owner_of_0555_dir_denied_create() {
+        if rustix::process::geteuid().is_root() {
+            return;
+        }
         let t = Tmp::new();
         let d = t.0.join("ro");
         fs::create_dir(&d).unwrap();
@@ -368,6 +371,9 @@ mod tests {
 
     #[test]
     fn owner_of_0444_file_denied_write() {
+        if rustix::process::geteuid().is_root() {
+            return;
+        }
         let t = Tmp::new();
         let f = t.0.join("readonly");
         fs::write(&f, b"x").unwrap();
@@ -381,6 +387,9 @@ mod tests {
 
     #[test]
     fn owner_of_0555_dir_denied_delete() {
+        if rustix::process::geteuid().is_root() {
+            return;
+        }
         let t = Tmp::new();
         let d = t.0.join("ro");
         fs::create_dir(&d).unwrap();
