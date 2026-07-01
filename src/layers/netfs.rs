@@ -1,7 +1,7 @@
-use crate::engine::{Layer, LayerResult};
+use crate::engine::{Layer, LayerResult, LayerStatus};
 use crate::identity::Identity;
 use crate::op::Op;
-use crate::report::{Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
+use crate::report::{Certainty, Evidence, EvidenceSource, Fix, FixAction, LayerId, Risk};
 use std::path::Path;
 
 pub struct NetfsLayer;
@@ -82,13 +82,19 @@ fn advice(text: impl Into<String>) -> Fix {
     }
 }
 
-struct Suspect {
+enum Level {
+    Suspect,
+    Info,
+}
+
+struct Finding {
+    level: Level,
     detail: String,
     ev: String,
     fixes: Vec<Fix>,
 }
 
-fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<Suspect> {
+fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<Finding> {
     let ev = format!("{} on {} type {} ({})", m.source, m.mp, m.fstype, m.opts);
     let write = is_write(op);
     match classify(m.fstype)? {
@@ -100,13 +106,16 @@ fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<
             let mut fixes = vec![advice(
                 "confirm the uid maps server-side (idmapd/NFSv4)",
             )];
+            let mut level = Level::Info;
             if write && (target_root || euid_root) {
+                level = Level::Suspect;
                 notes.push("root, so root_squash may reject this write".into());
                 fixes.push(advice(
                     "check root_squash in /etc/exports",
                 ));
             }
             if write && has_flag(m.opts, "ro") {
+                level = Level::Suspect;
                 notes.push(
                     "ro mount; export may be read-only".into(),
                 );
@@ -114,7 +123,8 @@ fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<
                     "verify export is rw in /etc/exports",
                 ));
             }
-            Some(Suspect {
+            Some(Finding {
+                level,
                 detail: notes.join("; "),
                 ev,
                 fixes,
@@ -122,11 +132,16 @@ fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<
         }
         NetKind::Cifs => {
             let creds = forced_creds(m.opts);
+            let level = match write && !creds.is_empty() {
+                true => Level::Suspect,
+                false => Level::Info,
+            };
             let cred_str = match creds.is_empty() {
                 true => String::from("mount credentials"),
                 false => creds.join(","),
             };
-            Some(Suspect {
+            Some(Finding {
+                level,
                 detail: format!(
                     "{} is a {} mount; mount credentials ({}) govern access",
                     m.mp, m.fstype, cred_str
@@ -138,7 +153,8 @@ fn analyze(m: &MountInfo, target_root: bool, euid_root: bool, op: Op) -> Option<
                 ],
             })
         }
-        NetKind::Other(name) => Some(Suspect {
+        NetKind::Other(name) => Some(Finding {
+            level: Level::Info,
             detail: format!(
                 "{} is a {} network mount; remote host arbitrates access",
                 m.mp, name
@@ -172,15 +188,23 @@ impl Layer for NetfsLayer {
         let euid_root = uzers::get_effective_uid() == 0;
         match analyze(&m, id.uid == 0, euid_root, op) {
             None => LayerResult::skip(),
-            Some(s) => LayerResult::suspect(
-                s.detail,
-                vec![Evidence {
+            Some(f) => {
+                let evidence = vec![Evidence {
                     source: EvidenceSource::MountOpts,
-                    raw: s.ev,
+                    raw: f.ev,
                     path: Some(abs.to_path_buf()),
-                }],
-                s.fixes,
-            ),
+                }];
+                match f.level {
+                    Level::Suspect => LayerResult::suspect(f.detail, evidence, f.fixes),
+                    Level::Info => LayerResult {
+                        status: LayerStatus::Skip,
+                        certainty: Certainty::Proven,
+                        evidence,
+                        fixes: f.fixes,
+                        detail: f.detail,
+                    },
+                }
+            }
         }
     }
 }
@@ -208,25 +232,42 @@ mod tests {
     }
 
     #[test]
+    fn nfs_read_normal_is_informational() {
+        let m = mi("nfs", "rw,relatime");
+        let f = analyze(&m, false, false, Op::Read).unwrap();
+        assert!(matches!(f.level, Level::Info));
+    }
+
+    #[test]
     fn nfs_root_write_is_root_squash() {
         let m = mi("nfs", "rw");
-        let s = analyze(&m, true, false, Op::Write).unwrap();
-        assert!(s.detail.contains("root_squash"));
+        let f = analyze(&m, true, false, Op::Write).unwrap();
+        assert!(matches!(f.level, Level::Suspect));
+        assert!(f.detail.contains("root_squash"));
     }
 
     #[test]
     fn nfs_ro_option_notes_export() {
         let m = mi("nfs", "ro,relatime");
-        let s = analyze(&m, false, false, Op::Write).unwrap();
-        assert!(s.detail.contains("read-only"));
+        let f = analyze(&m, false, false, Op::Write).unwrap();
+        assert!(matches!(f.level, Level::Suspect));
+        assert!(f.detail.contains("read-only"));
     }
 
     #[test]
-    fn cifs_uid_is_credential_suspect() {
+    fn cifs_write_uid_is_credential_suspect() {
         let m = mi("cifs", "rw,uid=1000,gid=1000,file_mode=0755");
-        let s = analyze(&m, false, false, Op::Read).unwrap();
-        assert!(s.detail.contains("credentials"));
-        assert!(s.ev.contains("uid=1000"));
+        let f = analyze(&m, false, false, Op::Write).unwrap();
+        assert!(matches!(f.level, Level::Suspect));
+        assert!(f.detail.contains("credentials"));
+        assert!(f.ev.contains("uid=1000"));
+    }
+
+    #[test]
+    fn cifs_read_is_informational() {
+        let m = mi("cifs", "rw,uid=1000,gid=1000");
+        let f = analyze(&m, false, false, Op::Read).unwrap();
+        assert!(matches!(f.level, Level::Info));
     }
 
     #[test]

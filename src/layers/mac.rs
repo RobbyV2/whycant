@@ -421,7 +421,7 @@ mod linux {
             MacVerdict::Skip => {
                 let mut ev_all = evidence;
                 for note in presence_notes(&se, smack, tomoyo) {
-                    ev_all.push(ev(EvidenceSource::ApparmorStatus, note, None));
+                    ev_all.push(ev(EvidenceSource::MacStatus, note, None));
                 }
                 skip_note(
                     ev_all,
@@ -453,7 +453,7 @@ fn check_freebsd() -> LayerResult {
             status: LayerStatus::Skip,
             certainty: Certainty::Proven,
             evidence: vec![Evidence {
-                source: EvidenceSource::ApparmorStatus,
+                source: EvidenceSource::MacStatus,
                 raw: "mac(4) framework present; no per-file evaluation".into(),
                 path: None,
             }],

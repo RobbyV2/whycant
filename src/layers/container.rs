@@ -89,7 +89,7 @@ fn overflow_uid() -> u32 {
 
 fn cap_ev(raw: String) -> Evidence {
     Evidence {
-        source: EvidenceSource::Capability,
+        source: EvidenceSource::Namespace,
         raw,
         path: None,
     }

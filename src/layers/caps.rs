@@ -207,7 +207,7 @@ fn getcap_line(fc: &FileCaps, path: &Path) -> Evidence {
         .map(|(flags, names)| format!("{}={}", names.join(","), flags))
         .collect();
     Evidence {
-        source: EvidenceSource::Xattr,
+        source: EvidenceSource::FileCap,
         raw: format!("{} {}", path.display(), rendered.join(" ")),
         path: Some(path.to_path_buf()),
     }

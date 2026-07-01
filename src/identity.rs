@@ -86,16 +86,32 @@ fn report_running_as(ra: &sudo::RunningAs) -> report::RunningAs {
     }
 }
 
+fn lsm_active() -> bool {
+    [
+        "/sys/fs/selinux",
+        "/sys/kernel/security/apparmor",
+        "/sys/fs/smackfs",
+        "/sys/kernel/security/tomoyo",
+    ]
+    .iter()
+    .any(|p| std::path::Path::new(p).exists())
+}
+
 pub fn banner_text(id: &Identity, ra: &sudo::RunningAs) -> String {
-    let note = match ra {
-        sudo::RunningAs::Root | sudo::RunningAs::Suid => "full audit-log access",
-        sudo::RunningAs::User => "MAC denial confirmation needs sudo",
-    };
-    format!(
-        "running as {} (uid {}); {note}",
+    let head = format!(
+        "running as {} (uid {})",
         id.name.as_deref().unwrap_or("?"),
         id.uid
-    )
+    );
+    let note = match ra {
+        sudo::RunningAs::Root | sudo::RunningAs::Suid => Some("full audit-log access"),
+        sudo::RunningAs::User if lsm_active() => Some("MAC denial confirmation needs sudo"),
+        sudo::RunningAs::User => None,
+    };
+    match note {
+        Some(n) => format!("{head}; {n}"),
+        None => head,
+    }
 }
 
 pub fn to_report(id: &Identity) -> report::IdentityReport {
@@ -133,6 +149,32 @@ mod tests {
         let id = resolve_target(None).unwrap();
         assert!(!id.groups.is_empty());
         assert!(id.groups.contains(&id.primary_gid));
+    }
+
+    fn ident() -> Identity {
+        Identity {
+            uid: 1000,
+            primary_gid: 1000,
+            groups: vec![1000],
+            name: Some("alice".into()),
+            is_self: true,
+        }
+    }
+
+    #[test]
+    fn root_banner_notes_audit_access() {
+        let b = banner_text(&ident(), &sudo::RunningAs::Root);
+        assert!(b.contains("full audit-log access"));
+    }
+
+    #[test]
+    fn user_mac_clause_tracks_lsm_presence() {
+        let b = banner_text(&ident(), &sudo::RunningAs::User);
+        assert!(b.starts_with("running as alice (uid 1000)"));
+        assert_eq!(
+            b.contains("MAC denial confirmation needs sudo"),
+            lsm_active()
+        );
     }
 
     #[test]

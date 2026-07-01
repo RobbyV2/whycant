@@ -148,9 +148,12 @@ pub enum EvidenceSource {
     MountOpts,
     SelinuxLabel,
     ApparmorStatus,
+    MacStatus,
     AuditAvc,
     Statvfs,
     Capability,
+    FileCap,
+    Namespace,
     Xattr,
     Statflags,
 }
