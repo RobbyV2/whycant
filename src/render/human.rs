@@ -1,25 +1,38 @@
 use crate::report::{
-    CrossCheck, Evidence, EvidenceSource, Fix, Mark, PathComponent, Report, Risk, Verdict,
+    CrossCheck, Evidence, EvidenceSource, Fix, LayerId, Mark, PathComponent, Report, Risk, Verdict,
 };
 use crate::term::{Glyph, GlyphSet, Stream, TermCtx};
 use anstyle::Style;
 use std::path::Path;
 
-pub fn render_human(report: &Report, term: &TermCtx, verbose: bool) -> String {
-    let mut lines: Vec<String> = Vec::new();
-    lines.push(verdict_line(report, term));
-    push_zone(&mut lines, chain_lines(report, term, verbose));
-    push_zone(&mut lines, evidence_lines(report, term));
-    push_zone(&mut lines, crosscheck_lines(report, term));
-    push_zone(&mut lines, fix_lines(report, term));
-    lines.join("\n")
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Layout {
+    Human,
+    Plain,
 }
 
-fn push_zone(lines: &mut Vec<String>, zone: Vec<String>) {
-    if !zone.is_empty() {
-        lines.push(String::new());
+pub fn render_human(report: &Report, term: &TermCtx, verbose: bool) -> String {
+    render_report(report, term, verbose, Layout::Human)
+}
+
+pub fn render_report(report: &Report, term: &TermCtx, verbose: bool, layout: Layout) -> String {
+    let mut lines: Vec<String> = Vec::new();
+    let spaced = layout == Layout::Human;
+    let mut add = |zone: Vec<String>| {
+        if zone.is_empty() {
+            return;
+        }
+        if spaced && !lines.is_empty() {
+            lines.push(String::new());
+        }
         lines.extend(zone);
-    }
+    };
+    add(verdict_zone(report, term, layout));
+    add(chain_zone(report, term, verbose, layout));
+    add(evidence_zone(report, term, layout));
+    add(crosscheck_zone(report, term, layout));
+    add(fix_zone(report, term, layout));
+    lines.join("\n")
 }
 
 fn paint(term: &TermCtx, style: Style, s: &str) -> String {
@@ -51,25 +64,74 @@ fn verdict_glyph(term: &TermCtx, v: Verdict) -> &'static str {
     }
 }
 
+fn verdict_token(v: Verdict) -> &'static str {
+    match v {
+        Verdict::Allowed => "allowed",
+        Verdict::Blocked => "blocked",
+        Verdict::Indeterminate => "indeterminate",
+        Verdict::TargetError => "target_error",
+    }
+}
+
+fn mark_word(m: Mark) -> &'static str {
+    match m {
+        Mark::Pass => "pass",
+        Mark::Block => "block",
+        Mark::NotReached => "not_reached",
+    }
+}
+
+fn layer_token(id: LayerId) -> &'static str {
+    match id {
+        LayerId::Existence => "existence",
+        LayerId::Traverse => "traverse",
+        LayerId::Dac => "dac",
+        LayerId::Acl => "acl",
+        LayerId::Attrs => "attrs",
+        LayerId::Mount => "mount",
+        LayerId::Capabilities => "capabilities",
+        LayerId::Mac => "mac",
+        LayerId::MacosSip => "macos_sip",
+        LayerId::NetworkFs => "network_fs",
+        LayerId::Container => "container",
+    }
+}
+
 fn render_path(term: &TermCtx, p: &Path, max: usize) -> String {
     let text = term.truncate_path(p, max);
     term.hyperlink(p, &text).into_owned()
 }
 
-fn verdict_line(report: &Report, term: &TermCtx) -> String {
+fn verdict_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
     let v = report.verdict;
-    let head = paint(
-        term,
-        verdict_style(term, v),
-        &format!("{} {}", verdict_glyph(term, v), v.word()),
-    );
     let op = format!("{:?}", report.op).to_lowercase();
-    let path = render_path(term, &report.path, term.width);
-    let mut line = format!("{head}  {op} {path}");
-    if let Some(c) = &report.culprit {
-        line.push_str(&format!("   {c}"));
+    match layout {
+        Layout::Human => {
+            let head = paint(
+                term,
+                verdict_style(term, v),
+                &format!("{} {}", verdict_glyph(term, v), v.word()),
+            );
+            let path = render_path(term, &report.path, term.width);
+            let mut line = format!("{head}  {op} {path}");
+            if let Some(c) = &report.culprit {
+                line.push_str(&format!("   {c}"));
+            }
+            vec![line]
+        }
+        Layout::Plain => {
+            let mut out = vec![format!(
+                "verdict {} {} {}",
+                verdict_token(v),
+                op,
+                report.path.display()
+            )];
+            if let Some(c) = &report.culprit {
+                out.push(format!("culprit {c}"));
+            }
+            out
+        }
     }
-    line
 }
 
 fn mark_glyph(term: &TermCtx, m: Mark) -> &'static str {
@@ -108,49 +170,91 @@ fn component_detail(c: &PathComponent) -> String {
     }
 }
 
-fn chain_lines(report: &Report, term: &TermCtx, verbose: bool) -> Vec<String> {
+fn visible_components(report: &Report, verbose: bool) -> Vec<&PathComponent> {
     let has_block = report
         .evidence_chain
         .iter()
         .any(|c| matches!(c.mark, Mark::Block));
-    let visible: Vec<&PathComponent> = report
+    report
         .evidence_chain
         .iter()
         .filter(|c| verbose || !(has_block && matches!(c.mark, Mark::Pass)))
-        .collect();
+        .collect()
+}
+
+fn chain_zone(report: &Report, term: &TermCtx, verbose: bool, layout: Layout) -> Vec<String> {
+    let visible = visible_components(report, verbose);
     if visible.is_empty() {
         return Vec::new();
     }
-    let width = visible
-        .iter()
-        .map(|c| c.name.chars().count())
-        .max()
-        .unwrap_or(0)
-        .min(40);
-    visible
-        .iter()
-        .map(|c| {
-            let mark = paint(term, mark_style(term, c.mark), mark_glyph(term, c.mark));
-            let need = match c.mark {
-                Mark::NotReached => "",
-                _ => c.need.as_str(),
-            };
-            format!(
-                "  {:<width$}  {} {}  {}",
-                c.name,
-                mark,
-                need,
-                component_detail(c)
-            )
-            .trim_end()
-            .to_string()
-        })
-        .collect()
+    match layout {
+        Layout::Human => {
+            let width = visible
+                .iter()
+                .map(|c| c.name.chars().count())
+                .max()
+                .unwrap_or(0)
+                .min(40);
+            visible
+                .iter()
+                .map(|c| {
+                    let mark = paint(term, mark_style(term, c.mark), mark_glyph(term, c.mark));
+                    let need = match c.mark {
+                        Mark::NotReached => "",
+                        _ => c.need.as_str(),
+                    };
+                    format!(
+                        "  {:<width$}  {} {}  {}",
+                        c.name,
+                        mark,
+                        need,
+                        component_detail(c)
+                    )
+                    .trim_end()
+                    .to_string()
+                })
+                .collect()
+        }
+        Layout::Plain => visible
+            .iter()
+            .map(|c| {
+                let need = match c.need.is_empty() {
+                    true => "-",
+                    false => c.need.as_str(),
+                };
+                format!(
+                    "chain {} {} {} {}",
+                    c.name,
+                    mark_word(c.mark),
+                    need,
+                    component_detail(c)
+                )
+                .trim_end()
+                .to_string()
+            })
+            .collect(),
+    }
 }
 
 fn source_label(s: EvidenceSource) -> &'static str {
     match s {
         EvidenceSource::LsLd => "ls -ld",
+        EvidenceSource::Getfacl => "getfacl",
+        EvidenceSource::Lsattr => "lsattr",
+        EvidenceSource::MountOpts => "mount",
+        EvidenceSource::SelinuxLabel => "selinux",
+        EvidenceSource::ApparmorStatus => "apparmor",
+        EvidenceSource::AuditAvc => "audit",
+        EvidenceSource::Statvfs => "statvfs",
+        EvidenceSource::Capability => "getcap",
+        EvidenceSource::Xattr => "xattr",
+        EvidenceSource::Statflags => "stat",
+    }
+}
+
+fn source_token(s: EvidenceSource) -> &'static str {
+    match s {
+        EvidenceSource::LsLd => "ls_ld",
         EvidenceSource::Getfacl => "getfacl",
         EvidenceSource::Lsattr => "lsattr",
         EvidenceSource::MountOpts => "mount",
@@ -173,7 +277,7 @@ fn evidence_line(term: &TermCtx, ev: &Evidence) -> String {
     format!("  {tag}  {}", ev.raw)
 }
 
-fn evidence_lines(report: &Report, term: &TermCtx) -> Vec<String> {
+fn evidence_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
     let Some(id) = report.blocking_layer else {
         return Vec::new();
     };
@@ -183,27 +287,54 @@ fn evidence_lines(report: &Report, term: &TermCtx) -> Vec<String> {
     if lr.evidence.is_empty() {
         return Vec::new();
     }
-    let mut out = vec![paint(term, term.style_rgb(0x88, 0x88, 0x88), &lr.summary)];
-    out.extend(lr.evidence.iter().map(|ev| evidence_line(term, ev)));
-    out
-}
-
-fn crosscheck_lines(report: &Report, term: &TermCtx) -> Vec<String> {
-    let Some(cc) = &report.cross_check else {
-        return Vec::new();
-    };
-    let msg = cc.message.clone().unwrap_or_else(|| default_crosscheck(cc));
-    let style = match cc.agree {
-        true => term.style_rgb(0x88, 0x88, 0x88),
-        false => term.style_rgb(0xf1, 0xc4, 0x0f).bold(),
-    };
-    vec![paint(term, style, &format!("cross-check: {msg}"))]
+    match layout {
+        Layout::Human => {
+            let mut out = vec![paint(term, term.style_rgb(0x88, 0x88, 0x88), &lr.summary)];
+            out.extend(lr.evidence.iter().map(|ev| evidence_line(term, ev)));
+            out
+        }
+        Layout::Plain => lr
+            .evidence
+            .iter()
+            .map(|ev| {
+                format!(
+                    "evidence {} {} {}",
+                    layer_token(id),
+                    source_token(ev.source),
+                    ev.raw
+                )
+            })
+            .collect(),
+    }
 }
 
 fn default_crosscheck(cc: &CrossCheck) -> String {
     match cc.agree {
         true => "model and kernel concur".into(),
         false => "model and kernel disagree".into(),
+    }
+}
+
+fn crosscheck_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
+    let Some(cc) = &report.cross_check else {
+        return Vec::new();
+    };
+    let msg = cc.message.clone().unwrap_or_else(|| default_crosscheck(cc));
+    match layout {
+        Layout::Human => {
+            let style = match cc.agree {
+                true => term.style_rgb(0x88, 0x88, 0x88),
+                false => term.style_rgb(0xf1, 0xc4, 0x0f).bold(),
+            };
+            vec![paint(term, style, &format!("cross-check: {msg}"))]
+        }
+        Layout::Plain => {
+            let verd = match cc.agree {
+                true => "agree",
+                false => "disagree",
+            };
+            vec![format!("crosscheck {verd} {msg}")]
+        }
     }
 }
 
@@ -224,35 +355,47 @@ fn risk_style(term: &TermCtx, r: Risk) -> Style {
     term.style_rgb(rr, g, b)
 }
 
-fn fix_lines(report: &Report, term: &TermCtx) -> Vec<String> {
+fn fix_zone(report: &Report, term: &TermCtx, layout: Layout) -> Vec<String> {
     if report.fixes.is_empty() {
         return Vec::new();
     }
-    let arrow = term.glyph(Glyph::Arrow);
-    report
-        .fixes
-        .iter()
-        .flat_map(|f: &Fix| {
-            let tag = paint(
-                term,
-                risk_style(term, f.risk),
-                &format!("[risk: {}]", risk_word(f.risk)),
-            );
-            [
-                format!("  {arrow} {}   {tag}", f.display()),
-                format!("      {}", f.rationale),
-            ]
-        })
-        .collect()
+    match layout {
+        Layout::Human => {
+            let arrow = term.glyph(Glyph::Arrow);
+            report
+                .fixes
+                .iter()
+                .flat_map(|f: &Fix| {
+                    let tag = paint(
+                        term,
+                        risk_style(term, f.risk),
+                        &format!("[risk: {}]", risk_word(f.risk)),
+                    );
+                    [
+                        format!("  {arrow} {}   {tag}", f.display()),
+                        format!("      {}", f.rationale),
+                    ]
+                })
+                .collect()
+        }
+        Layout::Plain => report
+            .fixes
+            .iter()
+            .flat_map(|f: &Fix| {
+                [
+                    format!("fix {} {}", risk_word(f.risk), f.display()),
+                    format!("fix-note {}", f.rationale),
+                ]
+            })
+            .collect(),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::op::Op;
-    use crate::report::{
-        Certainty, IdentityReport, LayerId, LayerResult, LayerStatus, NodeKind, RunningAs,
-    };
+    use crate::report::{Certainty, IdentityReport, LayerResult, LayerStatus, NodeKind, RunningAs};
     use crate::term::{ColorDepth, GlyphSet};
 
     fn plain_term() -> TermCtx {

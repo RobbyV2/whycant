@@ -1,0 +1,13 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+[1m[38;2;230;126;34m⚠ TARGET ERROR[0m  read /srv/data/missing.txt   /srv/data/missing.txt does not exist (ENOENT)
+
+  /            [38;2;46;204;113m✓[0m x
+  srv          [38;2;46;204;113m✓[0m x
+  data         [38;2;46;204;113m✓[0m x
+  missing.txt  [38;2;231;76;60m✗[0m r  no such file or directory
+
+[38;2;136;136;136mtarget does not exist: ENOENT[0m
+  [38;2;136;136;136mls -ld[0m  stat: cannot stat '/srv/data/missing.txt': No such file or directory

@@ -84,6 +84,9 @@ fn real_main() -> Result<i32, AppError> {
     if !machine && !resolved.quiet {
         term.banner(&report.identity.privilege_note);
     }
+    for w in &report.warnings {
+        let _ = writeln!(term.err(), "whycant: {w}");
+    }
 
     let out = render::render(&report, resolved.format, &term, resolved.all)?;
     writeln!(term.out(), "{out}").map_err(anyhow::Error::from)?;

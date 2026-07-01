@@ -1,0 +1,13 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+! TARGET ERROR  read /srv/data/missing.txt   /srv/data/missing.txt does not exist (ENOENT)
+
+  /            ok x
+  srv          ok x
+  data         ok x
+  missing.txt  x r  no such file or directory
+
+target does not exist: ENOENT
+  ls -ld  stat: cannot stat '/srv/data/missing.txt': No such file or directory

@@ -51,14 +51,6 @@ pub enum Verdict {
 }
 
 impl Verdict {
-    pub fn glyph(self) -> &'static str {
-        match self {
-            Self::Allowed => "\u{2713}",
-            Self::Blocked => "\u{2717}",
-            Self::Indeterminate => "?",
-            Self::TargetError => "\u{26a0}",
-        }
-    }
     pub fn word(self) -> &'static str {
         match self {
             Self::Allowed => "ALLOWED",

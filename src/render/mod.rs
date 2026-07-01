@@ -11,6 +11,6 @@ pub fn render(report: &Report, format: Format, term: &TermCtx, verbose: bool) ->
         Format::Human => Ok(human::render_human(report, term, verbose)),
         Format::Json => machine::render_json(report),
         Format::Toml => machine::render_toml(report),
-        Format::Plain => Ok(machine::render_plain(report)),
+        Format::Plain => Ok(machine::render_plain(report, term)),
     }
 }

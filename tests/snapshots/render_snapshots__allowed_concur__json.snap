@@ -1,0 +1,109 @@
+---
+source: tests/render_snapshots.rs
+expression: json
+---
+{
+  "schema_version": 1,
+  "tool": "whycant",
+  "identity": {
+    "target_uid": 1000,
+    "target_user": "alice",
+    "primary_gid": 1000,
+    "groups": [
+      1000,
+      4
+    ],
+    "group_names": [
+      "alice",
+      "adm"
+    ],
+    "running_as": "user",
+    "privilege_note": "running as alice (uid 1000); MAC denial confirmation needs sudo",
+    "target_is_self": true
+  },
+  "op": "read",
+  "path": "/home/alice/notes.txt",
+  "resolved_path": null,
+  "verdict": "allowed",
+  "certainty": "proven",
+  "culprit": null,
+  "blocking_layer": null,
+  "evidence_chain": [
+    {
+      "name": "/",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "home",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "alice",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "notes.txt",
+      "kind": "file",
+      "mark": "pass",
+      "need": "r",
+      "evidence": {
+        "source": "ls_ld",
+        "raw": "-rw-r--r-- 1 alice alice 220 /home/alice/notes.txt",
+        "path": "/home/alice/notes.txt"
+      },
+      "note": null,
+      "layer": "dac"
+    }
+  ],
+  "layer_results": [
+    {
+      "layer": "traverse",
+      "status": "pass",
+      "certainty": "proven",
+      "summary": "all ancestors traversable by alice",
+      "evidence": []
+    },
+    {
+      "layer": "dac",
+      "status": "pass",
+      "certainty": "proven",
+      "summary": "DAC allows read: mode 0644, world-readable",
+      "evidence": [
+        {
+          "source": "ls_ld",
+          "raw": "-rw-r--r-- 1 alice alice 220 /home/alice/notes.txt",
+          "path": "/home/alice/notes.txt"
+        }
+      ]
+    }
+  ],
+  "fixes": [],
+  "cross_check": {
+    "available": true,
+    "kernel_allows": true,
+    "model_allows": true,
+    "agree": true,
+    "kernel_rwx": [
+      true,
+      false,
+      false
+    ],
+    "message": null
+  },
+  "warnings": []
+}

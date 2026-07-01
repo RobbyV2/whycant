@@ -1,0 +1,85 @@
+---
+source: tests/render_snapshots.rs
+expression: json
+---
+{
+  "schema_version": 1,
+  "tool": "whycant",
+  "identity": {
+    "target_uid": 1000,
+    "target_user": "alice",
+    "primary_gid": 1000,
+    "groups": [
+      1000
+    ],
+    "group_names": [
+      "alice"
+    ],
+    "running_as": "user",
+    "privilege_note": "running as alice (uid 1000); MAC denial confirmation needs sudo",
+    "target_is_self": false
+  },
+  "op": "read",
+  "path": "/srv/data/missing.txt",
+  "resolved_path": null,
+  "verdict": "target_error",
+  "certainty": "proven",
+  "culprit": "/srv/data/missing.txt does not exist (ENOENT)",
+  "blocking_layer": "existence",
+  "evidence_chain": [
+    {
+      "name": "/",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "srv",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "data",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "missing.txt",
+      "kind": "missing",
+      "mark": "block",
+      "need": "r",
+      "evidence": null,
+      "note": "no such file or directory",
+      "layer": "existence"
+    }
+  ],
+  "layer_results": [
+    {
+      "layer": "existence",
+      "status": "block",
+      "certainty": "proven",
+      "summary": "target does not exist: ENOENT",
+      "evidence": [
+        {
+          "source": "ls_ld",
+          "raw": "stat: cannot stat '/srv/data/missing.txt': No such file or directory",
+          "path": "/srv/data/missing.txt"
+        }
+      ]
+    }
+  ],
+  "fixes": [],
+  "cross_check": null,
+  "warnings": []
+}

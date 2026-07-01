@@ -1,0 +1,90 @@
+---
+source: tests/render_snapshots.rs
+expression: toml
+---
+schema_version = 1
+tool = "whycant"
+op = "read"
+path = "/home/alice/notes.txt"
+verdict = "allowed"
+certainty = "proven"
+fixes = []
+warnings = []
+
+[identity]
+target_uid = 1000
+target_user = "alice"
+primary_gid = 1000
+groups = [
+    1000,
+    4,
+]
+group_names = [
+    "alice",
+    "adm",
+]
+running_as = "user"
+privilege_note = "running as alice (uid 1000); MAC denial confirmation needs sudo"
+target_is_self = true
+
+[[evidence_chain]]
+name = "/"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "home"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "alice"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "notes.txt"
+kind = "file"
+mark = "pass"
+need = "r"
+layer = "dac"
+
+[evidence_chain.evidence]
+source = "ls_ld"
+raw = "-rw-r--r-- 1 alice alice 220 /home/alice/notes.txt"
+path = "/home/alice/notes.txt"
+
+[[layer_results]]
+layer = "traverse"
+status = "pass"
+certainty = "proven"
+summary = "all ancestors traversable by alice"
+evidence = []
+
+[[layer_results]]
+layer = "dac"
+status = "pass"
+certainty = "proven"
+summary = "DAC allows read: mode 0644, world-readable"
+
+[[layer_results.evidence]]
+source = "ls_ld"
+raw = "-rw-r--r-- 1 alice alice 220 /home/alice/notes.txt"
+path = "/home/alice/notes.txt"
+
+[cross_check]
+available = true
+kernel_allows = true
+model_allows = true
+agree = true
+kernel_rwx = [
+    true,
+    false,
+    false,
+]

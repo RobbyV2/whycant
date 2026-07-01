@@ -1,0 +1,16 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+x BLOCKED  traverse /srv/data/report.txt   /srv/data not traversable by alice
+
+  /           ok x
+  srv         ok x
+  data        x x  drwxr-x--- 4 root staff 4096 /srv/data   others lack x; alice is not owner or in group staff
+  report.txt  .   not reached
+
+traverse denied at /srv/data
+  ls -ld  drwxr-x--- 4 root staff 4096 /srv/data
+
+  -> sudo chmod 'o+x' /srv/data   [risk: low]
+      others need +x to descend into /srv/data toward report.txt

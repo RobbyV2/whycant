@@ -1,0 +1,109 @@
+---
+source: tests/render_snapshots.rs
+expression: json
+---
+{
+  "schema_version": 1,
+  "tool": "whycant",
+  "identity": {
+    "target_uid": 33,
+    "target_user": "www-data",
+    "primary_gid": 33,
+    "groups": [
+      33
+    ],
+    "group_names": [
+      "www-data"
+    ],
+    "running_as": "user",
+    "privilege_note": "running as www-data (uid 33); MAC denial confirmation needs sudo",
+    "target_is_self": false
+  },
+  "op": "read",
+  "path": "/srv/share/config.yaml",
+  "resolved_path": null,
+  "verdict": "blocked",
+  "certainty": "proven",
+  "culprit": "ACL mask clips www-data to no access on config.yaml",
+  "blocking_layer": "acl",
+  "evidence_chain": [
+    {
+      "name": "/",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "srv",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "share",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "config.yaml",
+      "kind": "file",
+      "mark": "block",
+      "need": "r",
+      "evidence": {
+        "source": "getfacl",
+        "raw": "user:www-data:r--  #effective:---",
+        "path": "/srv/share/config.yaml"
+      },
+      "note": "mask::--- clips the named-user entry to no effective access",
+      "layer": "acl"
+    }
+  ],
+  "layer_results": [
+    {
+      "layer": "acl",
+      "status": "block",
+      "certainty": "proven",
+      "summary": "ACL denies read: named-user entry masked to none",
+      "evidence": [
+        {
+          "source": "getfacl",
+          "raw": "user:www-data:r--  #effective:---",
+          "path": "/srv/share/config.yaml"
+        },
+        {
+          "source": "getfacl",
+          "raw": "mask::---",
+          "path": "/srv/share/config.yaml"
+        }
+      ]
+    }
+  ],
+  "fixes": [
+    {
+      "argv": [
+        "setfacl",
+        "-m",
+        "m::rx",
+        "/srv/share/config.yaml"
+      ],
+      "needs_root": true,
+      "description": "extend the ACL mask so the existing named-user entry takes effect",
+      "risk": "low",
+      "rationale": "u:www-data:r-- is already present; only the mask is clipping it"
+    }
+  ],
+  "cross_check": null,
+  "warnings": [
+    "check for a default ACL on the parent that could re-clip after edits"
+  ]
+}

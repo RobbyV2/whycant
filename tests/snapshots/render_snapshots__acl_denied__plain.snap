@@ -1,0 +1,14 @@
+---
+source: tests/render_snapshots.rs
+expression: plain
+---
+verdict blocked read /srv/share/config.yaml
+culprit ACL mask clips www-data to no access on config.yaml
+chain / pass x
+chain srv pass x
+chain share pass x
+chain config.yaml block r user:www-data:r--  #effective:---   mask::--- clips the named-user entry to no effective access
+evidence acl getfacl user:www-data:r--  #effective:---
+evidence acl getfacl mask::---
+fix low sudo setfacl -m m::rx /srv/share/config.yaml
+fix-note u:www-data:r-- is already present; only the mask is clipping it

@@ -1,0 +1,64 @@
+---
+source: tests/render_snapshots.rs
+expression: toml
+---
+schema_version = 1
+tool = "whycant"
+op = "read"
+path = "/srv/data/missing.txt"
+verdict = "target_error"
+certainty = "proven"
+culprit = "/srv/data/missing.txt does not exist (ENOENT)"
+blocking_layer = "existence"
+fixes = []
+warnings = []
+
+[identity]
+target_uid = 1000
+target_user = "alice"
+primary_gid = 1000
+groups = [1000]
+group_names = ["alice"]
+running_as = "user"
+privilege_note = "running as alice (uid 1000); MAC denial confirmation needs sudo"
+target_is_self = false
+
+[[evidence_chain]]
+name = "/"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "srv"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "data"
+kind = "dir"
+mark = "pass"
+need = "x"
+layer = "traverse"
+
+[[evidence_chain]]
+name = "missing.txt"
+kind = "missing"
+mark = "block"
+need = "r"
+note = "no such file or directory"
+layer = "existence"
+
+[[layer_results]]
+layer = "existence"
+status = "block"
+certainty = "proven"
+summary = "target does not exist: ENOENT"
+
+[[layer_results.evidence]]
+source = "ls_ld"
+raw = "stat: cannot stat '/srv/data/missing.txt': No such file or directory"
+path = "/srv/data/missing.txt"

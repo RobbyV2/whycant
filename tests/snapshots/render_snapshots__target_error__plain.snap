@@ -1,0 +1,11 @@
+---
+source: tests/render_snapshots.rs
+expression: plain
+---
+verdict target_error read /srv/data/missing.txt
+culprit /srv/data/missing.txt does not exist (ENOENT)
+chain / pass x
+chain srv pass x
+chain data pass x
+chain missing.txt block r no such file or directory
+evidence existence ls_ld stat: cannot stat '/srv/data/missing.txt': No such file or directory

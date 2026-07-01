@@ -27,3 +27,7 @@ terminal_size = "0.3"
 thiserror = "2"
 toml = "0.8"
 uzers = "0.12"
+
+[dev-dependencies]
+insta = { version = "1", features = ["redactions"] }
+tempfile = "3"

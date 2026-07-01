@@ -1,0 +1,10 @@
+---
+source: tests/render_snapshots.rs
+expression: plain
+---
+verdict allowed read /home/alice/notes.txt
+chain / pass x
+chain home pass x
+chain alice pass x
+chain notes.txt pass r -rw-r--r-- 1 alice alice 220 /home/alice/notes.txt
+crosscheck agree model and kernel concur

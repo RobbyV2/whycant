@@ -1,0 +1,101 @@
+---
+source: tests/render_snapshots.rs
+expression: json
+---
+{
+  "schema_version": 1,
+  "tool": "whycant",
+  "identity": {
+    "target_uid": 1000,
+    "target_user": "alice",
+    "primary_gid": 1000,
+    "groups": [
+      1000
+    ],
+    "group_names": [
+      "alice"
+    ],
+    "running_as": "user",
+    "privilege_note": "running as alice (uid 1000); MAC denial confirmation needs sudo",
+    "target_is_self": false
+  },
+  "op": "traverse",
+  "path": "/srv/data/report.txt",
+  "resolved_path": null,
+  "verdict": "blocked",
+  "certainty": "proven",
+  "culprit": "/srv/data not traversable by alice",
+  "blocking_layer": "traverse",
+  "evidence_chain": [
+    {
+      "name": "/",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "srv",
+      "kind": "dir",
+      "mark": "pass",
+      "need": "x",
+      "evidence": null,
+      "note": null,
+      "layer": "traverse"
+    },
+    {
+      "name": "data",
+      "kind": "dir",
+      "mark": "block",
+      "need": "x",
+      "evidence": {
+        "source": "ls_ld",
+        "raw": "drwxr-x--- 4 root staff 4096 /srv/data",
+        "path": "/srv/data"
+      },
+      "note": "others lack x; alice is not owner or in group staff",
+      "layer": "traverse"
+    },
+    {
+      "name": "report.txt",
+      "kind": "file",
+      "mark": "not_reached",
+      "need": "r",
+      "evidence": null,
+      "note": null,
+      "layer": null
+    }
+  ],
+  "layer_results": [
+    {
+      "layer": "traverse",
+      "status": "block",
+      "certainty": "proven",
+      "summary": "traverse denied at /srv/data",
+      "evidence": [
+        {
+          "source": "ls_ld",
+          "raw": "drwxr-x--- 4 root staff 4096 /srv/data",
+          "path": "/srv/data"
+        }
+      ]
+    }
+  ],
+  "fixes": [
+    {
+      "argv": [
+        "chmod",
+        "o+x",
+        "/srv/data"
+      ],
+      "needs_root": true,
+      "description": "grant others traverse on the blocking directory",
+      "risk": "low",
+      "rationale": "others need +x to descend into /srv/data toward report.txt"
+    }
+  ],
+  "cross_check": null,
+  "warnings": []
+}

@@ -1,0 +1,16 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+[1m[38;2;231;76;60m✗ BLOCKED[0m  traverse /srv/data/report.txt   /srv/data not traversable by alice
+
+  /           [38;2;46;204;113m✓[0m x
+  srv         [38;2;46;204;113m✓[0m x
+  data        [38;2;231;76;60m✗[0m x  drwxr-x--- 4 root staff 4096 /srv/data   others lack x; alice is not owner or in group staff
+  report.txt  [38;2;136;136;136m·[0m   not reached
+
+[38;2;136;136;136mtraverse denied at /srv/data[0m
+  [38;2;136;136;136mls -ld[0m  drwxr-x--- 4 root staff 4096 /srv/data
+
+  → sudo chmod 'o+x' /srv/data   [38;2;46;204;113m[risk: low][0m
+      others need +x to descend into /srv/data toward report.txt

@@ -1,0 +1,17 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+✗ BLOCKED  read /srv/share/config.yaml   ACL mask clips www-data to no access on config.yaml
+
+  /            ✓ x
+  srv          ✓ x
+  share        ✓ x
+  config.yaml  ✗ r  user:www-data:r--  #effective:---   mask::--- clips the named-user entry to no effective access
+
+ACL denies read: named-user entry masked to none
+  getfacl  user:www-data:r--  #effective:---
+  getfacl  mask::---
+
+  → sudo setfacl -m m::rx /srv/share/config.yaml   [risk: low]
+      u:www-data:r-- is already present; only the mask is clipping it

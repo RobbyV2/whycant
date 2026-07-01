@@ -1,0 +1,12 @@
+---
+source: tests/render_snapshots.rs
+expression: "render_human(r, &t, true)"
+---
+ok ALLOWED  read /home/alice/notes.txt
+
+  /          ok x
+  home       ok x
+  alice      ok x
+  notes.txt  ok r  -rw-r--r-- 1 alice alice 220 /home/alice/notes.txt
+
+cross-check: model and kernel concur
