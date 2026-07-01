@@ -12,4 +12,10 @@ fn main() {
         .unwrap_or_else(|| "unknown".into());
     println!("cargo:rustc-env=WHYCANT_GIT_HASH={hash}");
     println!("cargo:rerun-if-changed=.git/HEAD");
+    if let Ok(head) = std::fs::read_to_string(".git/HEAD") {
+        if let Some(reference) = head.trim().strip_prefix("ref: ") {
+            println!("cargo:rerun-if-changed=.git/{reference}");
+            println!("cargo:rerun-if-changed=.git/packed-refs");
+        }
+    }
 }
