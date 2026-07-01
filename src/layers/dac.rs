@@ -354,6 +354,47 @@ mod tests {
     }
 
     #[test]
+    fn owner_of_0555_dir_denied_create() {
+        let t = Tmp::new();
+        let d = t.0.join("ro");
+        fs::create_dir(&d).unwrap();
+        chmod(&d, 0o555);
+        let m = fs::metadata(&d).unwrap();
+        let owner = ident(m.uid(), m.gid(), vec![m.gid()]);
+        let r = check_parent(&owner, &d.join("child"), Op::Create, false);
+        assert!(matches!(r.status, LayerStatus::Block));
+        assert!(r.certainty == Certainty::Proven);
+    }
+
+    #[test]
+    fn owner_of_0444_file_denied_write() {
+        let t = Tmp::new();
+        let f = t.0.join("readonly");
+        fs::write(&f, b"x").unwrap();
+        chmod(&f, 0o444);
+        let m = fs::metadata(&f).unwrap();
+        let owner = ident(m.uid(), m.gid(), vec![m.gid()]);
+        let r = check_node(&owner, &f, Op::Write);
+        assert!(matches!(r.status, LayerStatus::Block));
+        assert!(r.certainty == Certainty::Proven);
+    }
+
+    #[test]
+    fn owner_of_0555_dir_denied_delete() {
+        let t = Tmp::new();
+        let d = t.0.join("ro");
+        fs::create_dir(&d).unwrap();
+        let f = d.join("note");
+        fs::write(&f, b"x").unwrap();
+        chmod(&d, 0o555);
+        let m = fs::metadata(&d).unwrap();
+        let owner = ident(m.uid(), m.gid(), vec![m.gid()]);
+        let r = check_parent(&owner, &f, Op::Delete, true);
+        assert!(matches!(r.status, LayerStatus::Block));
+        assert!(r.certainty == Certainty::Proven);
+    }
+
+    #[test]
     fn sticky_delete_non_owner_blocked_owner_allowed() {
         let t = Tmp::new();
         let d = t.0.join("shared");
