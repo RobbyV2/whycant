@@ -6,13 +6,22 @@ Explain, with evidence, why a filesystem operation is denied for a chosen identi
 
 Walks every access-control layer a Unix kernel consults, in order, and evaluates each
 against a target identity (uid, primary gid, full supplementary group set) rather than
-the current euid: DAC mode/owner, ancestor traverse (`+x`), POSIX/NFSv4 ACL, immutable
-and append attrs, mount flags (`ro`/`noexec`), Linux MAC/LSM (SELinux, AppArmor,
-SMACK/TOMOYO), capabilities, network-FS (NFS/CIFS root_squash, ro-export, uid mismatch),
-container/userns, and on macOS the SIP, quarantine, and TCC layers. It names the first
-denial, shows the raw evidence line behind the verdict, and prints the exact
-least-privilege fix. Anything computable unprivileged is proven; a MAC denial provable
-only from the audit log is suspected until confirmed with `sudo`.
+the current euid:
+
+- ancestor traverse (`+x`)
+- DAC mode/owner
+- POSIX/NFSv4 ACL
+- immutable and append attrs
+- mount flags (`ro`/`noexec`)
+- Linux MAC/LSM (SELinux, AppArmor, SMACK/TOMOYO)
+- capabilities
+- network-FS (NFS/CIFS root_squash, ro-export, uid mismatch)
+- container/userns
+- macOS SIP, quarantine, TCC
+
+Names what first denies the operation, shows the raw evidence line behind the verdict, and prints the
+exact least-privilege fix. Anything computable unprivileged is proven; a MAC denial
+provable only from the audit log is suspected until confirmed with `sudo`.
 
 ## Install
 
