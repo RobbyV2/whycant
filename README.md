@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/whycant-banner.png" alt="whycant" width="480">
+</p>
+
 # whycant
 
 Explain, with evidence, why a filesystem operation is denied for a chosen identity.
